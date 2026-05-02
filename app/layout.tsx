@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
-import { EditorLayoutShell } from "@/components/editor/editor-layout-shell";
+import { clerkAppearance } from "@/lib/clerk-appearance";
+import { editorPath, signInPath, signUpPath } from "@/lib/auth-routes";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,7 +31,15 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} dark h-full`}
     >
       <body className="min-h-full antialiased">
-        <EditorLayoutShell>{children}</EditorLayoutShell>
+        <ClerkProvider
+          appearance={clerkAppearance}
+          signInFallbackRedirectUrl={editorPath}
+          signInUrl={signInPath}
+          signUpFallbackRedirectUrl={editorPath}
+          signUpUrl={signUpPath}
+        >
+          {children}
+        </ClerkProvider>
       </body>
     </html>
   );
