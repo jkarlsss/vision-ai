@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 
+import { useProjectDialogsContext } from "@/components/editor/project-dialogs-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +31,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useProjectDialogsContext } from "@/components/editor/project-dialogs-provider";
 
 const projectInputClassName =
   "text-copy-primary caret-copy-primary placeholder:text-copy-muted [&::placeholder]:[-webkit-text-fill-color:var(--text-muted)] [-webkit-text-fill-color:var(--text-primary)]";
@@ -112,7 +112,7 @@ export function ProjectDialogs() {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button disabled={!canSubmitCreate} type="submit">
+              <Button disabled={!canSubmitCreate || isLoading} type="submit">
                 {isLoading ? "Creating..." : "Create project"}
               </Button>
             </DialogFooter>
@@ -175,7 +175,7 @@ export function ProjectDialogs() {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button disabled={!canSubmitRename} type="submit">
+              <Button disabled={!canSubmitRename || isLoading} type="submit">
                 {isLoading ? "Renaming..." : "Rename project"}
               </Button>
             </DialogFooter>

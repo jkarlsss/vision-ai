@@ -284,11 +284,19 @@ async function requestProjectMutation(
       ...init.headers,
     },
   });
-  const data: unknown = await response.json();
+    // Handle empty responses (e.g., 204 No Content from DELETE)
+  const text = await response.text();
+  const data: unknown = text ? JSON.parse(text) : {};
 
   if (!response.ok) {
     throw new Error(getApiErrorMessage(data));
   }
+
+    // DELETE may not return a project
+  if (init.method === "DELETE") {
+    return { project: null as unknown as ProjectListProject };
+  }
+
 
   if (!isRecord(data) || !isApiProject(data.project)) {
     throw new Error("Project response was invalid.");

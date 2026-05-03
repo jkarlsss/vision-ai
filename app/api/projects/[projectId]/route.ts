@@ -16,10 +16,7 @@ interface ProjectRouteContext {
 
 export const runtime = "nodejs";
 
-export async function PATCH(
-  request: Request,
-  context: ProjectRouteContext,
-) {
+export async function PATCH(request: Request, context: ProjectRouteContext) {
   const authResult = await requireAuthenticatedUserId();
 
   if (isApiErrorResult(authResult)) {
@@ -53,19 +50,23 @@ export async function PATCH(
     return nameResult.response;
   }
 
-  const project = await ownerResult.prisma.project.update({
-    where: { id: projectIdResult.projectId },
-    data: { name: nameResult.name },
-    select: projectSelect,
-  });
+  try {
+    const project = await ownerResult.prisma.project.update({
+      where: { id: projectIdResult.projectId },
+      data: { name: nameResult.name },
+      select: projectSelect,
+    });
 
-  return Response.json({ project });
+    return Response.json({ project });
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "P2025") {
+      return jsonError("Project not found.", 404);
+    }
+    throw error;
+  }
 }
 
-export async function DELETE(
-  _request: Request,
-  context: ProjectRouteContext,
-) {
+export async function DELETE(_request: Request, context: ProjectRouteContext) {
   const authResult = await requireAuthenticatedUserId();
 
   if (isApiErrorResult(authResult)) {
@@ -86,13 +87,19 @@ export async function DELETE(
   if (isApiErrorResult(ownerResult)) {
     return ownerResult.response;
   }
+  try {
+    const project = await ownerResult.prisma.project.delete({
+      where: { id: projectIdResult.projectId },
+      select: projectSelect,
+    });
 
-  const project = await ownerResult.prisma.project.delete({
-    where: { id: projectIdResult.projectId },
-    select: projectSelect,
-  });
-
-  return Response.json({ project });
+    return Response.json({ project });
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "P2025") {
+      return jsonError("Project not found.", 404);
+    }
+    throw error;
+  }
 }
 
 async function getProjectId(context: ProjectRouteContext) {
