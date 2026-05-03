@@ -9,6 +9,8 @@ import {
   Users,
   X,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import {
   Empty,
@@ -28,8 +30,12 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProjectDialogsContext } from "@/components/editor/project-dialogs-provider";
+import {
+  getProjectWorkspacePath,
+  isProjectWorkspacePath,
+} from "@/lib/project-routes";
 import { cn } from "@/lib/utils";
-import type { MockProject } from "@/hooks/use-project-dialogs";
+import type { ProjectListProject } from "@/hooks/use-project-actions";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
@@ -46,12 +52,12 @@ interface ProjectPlaceholderProps {
 interface ProjectListProps {
   description: string;
   icon: typeof FolderOpen;
-  projects: MockProject[];
+  projects: ProjectListProject[];
   title: string;
 }
 
 interface ProjectListItemProps {
-  project: MockProject;
+  project: ProjectListProject;
 }
 
 function ProjectPlaceholder({
@@ -73,20 +79,31 @@ function ProjectPlaceholder({
 }
 
 function ProjectListItem({ project }: ProjectListItemProps) {
+  const pathname = usePathname();
   const { openDeleteDialog, openRenameDialog } = useProjectDialogsContext();
   const canManageProject = project.access === "owner";
+  const isActive = isProjectWorkspacePath(pathname, project.id);
 
   return (
-    <li className="flex min-h-20 items-center gap-3 rounded-xl border border-sidebar-border bg-elevated px-3 py-2">
-      <div className="min-w-0 flex-1">
+    <li
+      className={cn(
+        "flex min-h-20 items-center gap-3 rounded-xl border border-sidebar-border bg-elevated px-3 py-2",
+        isActive && "border-brand bg-accent-dim",
+      )}
+    >
+      <Link
+        aria-current={isActive ? "page" : undefined}
+        className="min-w-0 flex-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        href={getProjectWorkspacePath(project.id)}
+      >
         <p className="truncate text-sm font-medium text-copy-primary">
           {project.name}
         </p>
         <p className="truncate font-mono text-xs text-copy-muted">
-          {project.slug}
+          {project.id}
         </p>
         <p className="mt-1 text-xs text-copy-muted">{project.updatedLabel}</p>
-      </div>
+      </Link>
       {canManageProject && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

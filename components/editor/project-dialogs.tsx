@@ -25,6 +25,7 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
@@ -42,11 +43,11 @@ export function ProjectDialogs() {
     closeDialog,
     confirmDeleteProject,
     createProjectName,
-    createProjectSlug,
+    createProjectRoomId,
     dialogState,
     isLoading,
+    mutationError,
     renameProjectName,
-    renameProjectSlug,
     setCreateProjectName,
     setRenameProjectName,
     submitCreateProject,
@@ -95,11 +96,14 @@ export function ProjectDialogs() {
                   value={createProjectName}
                 />
                 <FieldDescription aria-live="polite">
-                  Slug preview:{" "}
+                  Room ID:{" "}
                   <span className="font-mono text-copy-secondary">
-                    {createProjectSlug}
+                    {createProjectRoomId}
                   </span>
                 </FieldDescription>
+                {dialogState.type === "create" && mutationError && (
+                  <FieldError>{mutationError}</FieldError>
+                )}
               </Field>
             </FieldGroup>
             <DialogFooter>
@@ -108,7 +112,7 @@ export function ProjectDialogs() {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button disabled={!canSubmitCreate || isLoading} type="submit">
+              <Button disabled={!canSubmitCreate} type="submit">
                 {isLoading ? "Creating..." : "Create project"}
               </Button>
             </DialogFooter>
@@ -160,12 +164,9 @@ export function ProjectDialogs() {
                   ref={renameInputRef}
                   value={renameProjectName}
                 />
-                <FieldDescription aria-live="polite">
-                  Slug preview:{" "}
-                  <span className="font-mono text-copy-secondary">
-                    {renameProjectSlug}
-                  </span>
-                </FieldDescription>
+                {dialogState.type === "rename" && mutationError && (
+                  <FieldError>{mutationError}</FieldError>
+                )}
               </Field>
             </FieldGroup>
             <DialogFooter>
@@ -174,7 +175,7 @@ export function ProjectDialogs() {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button disabled={!canSubmitRename || isLoading} type="submit">
+              <Button disabled={!canSubmitRename} type="submit">
                 {isLoading ? "Renaming..." : "Rename project"}
               </Button>
             </DialogFooter>
@@ -199,6 +200,9 @@ export function ProjectDialogs() {
               This will delete {selectedProject?.name ?? "this project"}. This
               action cannot be undone.
             </AlertDialogDescription>
+            {dialogState.type === "delete" && mutationError && (
+              <FieldError>{mutationError}</FieldError>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isLoading} variant="outline">

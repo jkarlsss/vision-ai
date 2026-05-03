@@ -7,22 +7,28 @@ import {
 } from "react";
 
 import {
-  useProjectDialogs,
-  type ProjectDialogsController,
-} from "@/hooks/use-project-dialogs";
+  useProjectActions,
+  type ProjectActionsController,
+} from "@/hooks/use-project-actions";
+import type { ProjectLists } from "@/lib/project-data";
 
-const ProjectDialogsContext = createContext<ProjectDialogsController | null>(
+const ProjectDialogsContext = createContext<ProjectActionsController | null>(
   null,
 );
 
-interface ProjectDialogsProviderProps {
+interface ProjectDialogsProviderProps extends ProjectLists {
   children: ReactNode;
 }
 
 export function ProjectDialogsProvider({
   children,
+  ownedProjects,
+  sharedProjects,
 }: ProjectDialogsProviderProps) {
-  const projectDialogs = useProjectDialogs();
+  const projectDialogs = useProjectActions({
+    ownedProjects,
+    sharedProjects,
+  });
 
   return (
     <ProjectDialogsContext.Provider value={projectDialogs}>
