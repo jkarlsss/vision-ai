@@ -1,6 +1,16 @@
 "use client";
 
-import { FolderOpen, Plus, Users, X } from "lucide-react";
+import {
+  FolderOpen,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import {
   Empty,
@@ -10,9 +20,22 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useProjectDialogsContext } from "@/components/editor/project-dialogs-provider";
+import {
+  getProjectWorkspacePath,
+  isProjectWorkspacePath,
+} from "@/lib/project-routes";
 import { cn } from "@/lib/utils";
+import type { ProjectListProject } from "@/hooks/use-project-actions";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
@@ -24,6 +47,17 @@ interface ProjectPlaceholderProps {
   description: string;
   icon: typeof FolderOpen;
   title: string;
+}
+
+interface ProjectListProps {
+  description: string;
+  icon: typeof FolderOpen;
+  projects: ProjectListProject[];
+  title: string;
+}
+
+interface ProjectListItemProps {
+  project: ProjectListProject;
 }
 
 function ProjectPlaceholder({
@@ -44,69 +78,164 @@ function ProjectPlaceholder({
   );
 }
 
+function ProjectListItem({ project }: ProjectListItemProps) {
+  const pathname = usePathname();
+  const { openDeleteDialog, openRenameDialog } = useProjectDialogsContext();
+  const canManageProject = project.access === "owner";
+  const isActive = isProjectWorkspacePath(pathname, project.id);
+
+  return (
+    <li
+      className={cn(
+        "flex min-h-20 items-center gap-3 rounded-xl border border-sidebar-border bg-elevated px-3 py-2",
+        isActive && "border-brand bg-accent-dim",
+      )}
+    >
+      <Link
+        aria-current={isActive ? "page" : undefined}
+        className="min-w-0 flex-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        href={getProjectWorkspacePath(project.id)}
+      >
+        <p className="truncate text-sm font-medium text-copy-primary">
+          {project.name}
+        </p>
+        <p className="truncate font-mono text-xs text-copy-muted">
+          {project.id}
+        </p>
+        <p className="mt-1 text-xs text-copy-muted">{project.updatedLabel}</p>
+      </Link>
+      {canManageProject && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label={`Actions for ${project.name}`}
+              size="icon-sm"
+              type="button"
+              variant="ghost"
+            >
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuGroup>
+              <DropdownMenuItem onSelect={() => openRenameDialog(project)}>
+                <Pencil />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => openDeleteDialog(project)}
+                variant="destructive"
+              >
+                <Trash2 />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </li>
+  );
+}
+
+function ProjectList({
+  description,
+  icon,
+  projects,
+  title,
+}: ProjectListProps) {
+  if (projects.length === 0) {
+    return (
+      <ProjectPlaceholder description={description} icon={icon} title={title} />
+    );
+  }
+
+  return (
+    <ul className="flex flex-col gap-2">
+      {projects.map((project) => (
+        <ProjectListItem key={project.id} project={project} />
+      ))}
+    </ul>
+  );
+}
+
 export function ProjectSidebar({
   isOpen,
   onClose,
   className,
 }: ProjectSidebarProps) {
-  return (
-    <aside
-      aria-hidden={!isOpen}
-      className={cn(
-        "fixed bottom-4 left-4 top-18 z-40 w-80 overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar shadow-2xl shadow-background/40 backdrop-blur-md transition-[opacity,transform] duration-200 ease-out",
-        isOpen
-          ? "translate-x-0 opacity-100"
-          : "pointer-events-none -translate-x-[calc(100%+2rem)] opacity-0",
-        className,
-      )}
-    >
-      <div className="flex h-full min-h-0 flex-col">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-4">
-          <h2 className="text-sm font-medium text-copy-primary">Projects</h2>
-          <Button
-            aria-label="Close project sidebar"
-            onClick={onClose}
-            size="icon-sm"
-            type="button"
-            variant="ghost"
-          >
-            <X />
-          </Button>
-        </div>
+  const { openCreateDialog, ownedProjects, sharedProjects } =
+    useProjectDialogsContext();
 
-        <Tabs className="min-h-0 flex-1 gap-0" defaultValue="my-projects">
-          <div className="shrink-0 border-b border-sidebar-border px-3 py-3">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="my-projects">My Projects</TabsTrigger>
-              <TabsTrigger value="shared">Shared</TabsTrigger>
-            </TabsList>
+  return (
+    <>
+      {isOpen && (
+        <button
+          aria-label="Close project sidebar"
+          className="fixed inset-0 z-30 bg-background/70 backdrop-blur-sm md:hidden"
+          onClick={onClose}
+          type="button"
+        />
+      )}
+      <aside
+        aria-hidden={!isOpen}
+        className={cn(
+          "fixed bottom-3 left-3 right-3 top-18 z-40 overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar shadow-2xl shadow-background/40 backdrop-blur-md transition-[opacity,transform] duration-200 ease-out md:bottom-4 md:left-4 md:right-auto md:w-80",
+          isOpen
+            ? "translate-x-0 opacity-100"
+            : "pointer-events-none -translate-x-[calc(100%+2rem)] opacity-0",
+          className,
+        )}
+      >
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-4">
+            <h2 className="text-sm font-medium text-copy-primary">Projects</h2>
+            <Button
+              aria-label="Close project sidebar"
+              onClick={onClose}
+              size="icon-sm"
+              type="button"
+              variant="ghost"
+            >
+              <X />
+            </Button>
           </div>
 
-          <ScrollArea className="min-h-0 flex-1">
-            <TabsContent className="h-full p-3" value="my-projects">
-              <ProjectPlaceholder
-                description="Create a project to start mapping an architecture workspace."
-                icon={FolderOpen}
-                title="No projects yet"
-              />
-            </TabsContent>
-            <TabsContent className="h-full p-3" value="shared">
-              <ProjectPlaceholder
-                description="Projects shared with you will appear here."
-                icon={Users}
-                title="No shared projects"
-              />
-            </TabsContent>
-          </ScrollArea>
-        </Tabs>
+          <Tabs className="min-h-0 flex-1 gap-0" defaultValue="my-projects">
+            <div className="shrink-0 border-b border-sidebar-border px-3 py-3">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="my-projects">My Projects</TabsTrigger>
+                <TabsTrigger value="shared">Shared</TabsTrigger>
+              </TabsList>
+            </div>
 
-        <div className="shrink-0 border-t border-sidebar-border p-3">
-          <Button className="w-full" type="button">
-            <Plus data-icon="inline-start" />
-            New Project
-          </Button>
+            <ScrollArea className="min-h-0 flex-1">
+              <TabsContent className="h-full p-3" value="my-projects">
+                <ProjectList
+                  description="Create a project to start mapping an architecture workspace."
+                  icon={FolderOpen}
+                  projects={ownedProjects}
+                  title="No projects yet"
+                />
+              </TabsContent>
+              <TabsContent className="h-full p-3" value="shared">
+                <ProjectList
+                  description="Projects shared with you will appear here."
+                  icon={Users}
+                  projects={sharedProjects}
+                  title="No shared projects"
+                />
+              </TabsContent>
+            </ScrollArea>
+          </Tabs>
+
+          <div className="shrink-0 border-t border-sidebar-border p-3">
+            <Button className="w-full" onClick={openCreateDialog} type="button">
+              <Plus data-icon="inline-start" />
+              New Project
+            </Button>
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

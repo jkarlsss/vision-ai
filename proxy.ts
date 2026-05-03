@@ -7,6 +7,8 @@ const isPublicRoute = createRouteMatcher([
   `${signUpPath}(.*)`,
 ]);
 
+const isApiRoute = createRouteMatcher(["/api(.*)", "/trpc(.*)"]);
+
 function toAbsoluteUrl(path: string, requestUrl: string) {
   return new URL(path, requestUrl).toString();
 }
@@ -14,6 +16,16 @@ function toAbsoluteUrl(path: string, requestUrl: string) {
 export default clerkMiddleware(
   async (auth, request) => {
     if (!isPublicRoute(request)) {
+      if (isApiRoute(request)) {
+        const { isAuthenticated } = await auth();
+
+        if (!isAuthenticated) {
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        return;
+      }
+
       await auth.protect({
         unauthenticatedUrl: toAbsoluteUrl(signInPath, request.url),
       });
