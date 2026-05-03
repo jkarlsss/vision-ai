@@ -114,9 +114,12 @@ export function useProjectDialogs() {
 
   async function runMockMutation(mutate: () => void) {
     setIsLoading(true);
-    await Promise.resolve();
-    mutate();
-    setIsLoading(false);
+    try {
+      await Promise.resolve();
+      mutate();
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function submitCreateProject() {

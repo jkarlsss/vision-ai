@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Project dialogs and editor home
+- Prisma persistence foundation
 
 ## Current Goal
 
-- Project dialogs and sidebar actions from `context/feature-specs/04-project-dialogs.md` are implemented and verified.
+- Project data models, Prisma client singleton, and first migration from `context/feature-specs/05-prisma.md` are implemented and verified.
 
 ## Completed
 
@@ -16,6 +16,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/02-editor.md` - editor navbar and floating project sidebar components created, placeholder states composed with shadcn/ui, and the existing Dialog primitives remain ready for future title, description, and footer-action dialogs.
 - `context/feature-specs/03-auth.md` - Clerk provider, dark themed auth pages, protected-first `proxy.ts`, `/` to `/editor` redirect behavior, and editor navbar `UserButton` implemented.
 - `context/feature-specs/04-project-dialogs.md` - editor home content, shared project dialog controller hook, create/rename/delete dialogs, live slug previews, owned-project sidebar actions, hidden collaborator actions, mock project data, and mobile sidebar scrim behavior implemented.
+- `context/feature-specs/05-prisma.md` - Project and ProjectCollaborator Prisma models, cached Prisma client singleton, first migration, and generated Prisma client implemented and verified.
 - Editor layout integration - `/editor` now wraps route content with `components/editor/editor-layout-shell.tsx`, which coordinates the editor navbar and floating project sidebar state.
 
 ## In Progress
@@ -39,9 +40,15 @@ Update this file whenever the current phase, active feature, or implementation s
 - `components/ui/alert-dialog.tsx`, `components/ui/dropdown-menu.tsx`, `components/ui/field.tsx`, `components/ui/label.tsx`, and `components/ui/separator.tsx` were added through the shadcn CLI for project dialogs and sidebar item actions.
 - Root layout remains a Server Component and now owns the global Clerk provider; editor chrome is scoped to the protected `/editor` route layout, with sidebar open/close state in the client-only `EditorLayoutShell`.
 - Project dialog state, mock project data, form values, slug previews, and loading state live in the client-only `useProjectDialogs()` hook and are shared across `/editor` home and sidebar through `ProjectDialogsProvider`.
+- Prisma client output is generated to `app/generated/prisma`; application code imports the cached singleton from `lib/prisma.ts`, which uses Accelerate for `prisma+postgres://` URLs and `@prisma/adapter-pg` for direct Postgres URLs.
 
 ## Session Notes
 
+- Started Prisma persistence foundation from `context/feature-specs/05-prisma.md` after reading the required project context, local Next.js environment-variable docs, and Prisma CLI/driver-adapter guidance.
+- Added `prisma/models/project.prisma` with `ProjectStatus`, `Project`, and `ProjectCollaborator` schema definitions, including ownership metadata, collaborator relation cascade delete, timestamps, uniqueness, and required indexes.
+- Added `lib/prisma.ts` as a cached Prisma singleton that uses `accelerateUrl` for `prisma+postgres://` URLs, `@prisma/adapter-pg` for direct Postgres URLs, and development global caching for hot reloads.
+- Created and applied Prisma migration `20260503034404_add_project_models`, then regenerated the Prisma client output in `app/generated/prisma`; validated the schema with `npx.cmd prisma validate`.
+- Verified Prisma persistence foundation with `npm.cmd run lint` and `npm.cmd run build`.
 - Started project dialogs implementation from `context/feature-specs/04-project-dialogs.md` after reading the required project context, local Next.js App Router page/client component docs, and shadcn/ui guidance.
 - Added shadcn `field`, `dropdown-menu`, and `alert-dialog` primitives for form layout, project item menus, and destructive confirmation composition.
 - Created `hooks/use-project-dialogs.ts`, `components/editor/project-dialogs-provider.tsx`, `components/editor/project-dialogs.tsx`, and `components/editor/editor-home.tsx`; wired editor home and sidebar create buttons to the create dialog, owned-project actions to rename/delete dialogs, and collaborator projects without actions.
