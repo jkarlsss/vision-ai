@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import type { ReactFlowInstance } from "@xyflow/react";
+import { useEffect } from "react";
 
 import type { CanvasEdge, CanvasNode } from "@/types/canvas";
 
@@ -39,7 +39,7 @@ export function useKeyboardShortcuts({
       const isMod = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
 
-      if (key === "+" || key === "=") {
+      if (!isMod && (key === "+" || key === "=")) {
         event.preventDefault();
         void reactFlowInstance?.zoomIn({
           duration: shortcutViewportAnimationDuration,
@@ -47,7 +47,7 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      if (key === "-") {
+      if (!isMod && key === "-") {
         event.preventDefault();
         void reactFlowInstance?.zoomOut({
           duration: shortcutViewportAnimationDuration,

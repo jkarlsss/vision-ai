@@ -1,90 +1,90 @@
 "use client";
 
-import {
-  ClientSideSuspense,
-  LiveblocksProvider,
-  RoomProvider,
-  useCanRedo,
-  useCanUndo,
-  useHistory,
-  useRedo,
-  useUndo,
-} from "@liveblocks/react/suspense";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
 import {
-  Background,
-  BackgroundVariant,
-  ConnectionMode,
-  EdgeLabelRenderer,
-  Handle,
-  MarkerType,
-  NodeResizer,
-  NodeToolbar,
-  Position,
-  ReactFlow,
-  ReactFlowProvider,
-  getSmoothStepPath,
-  useReactFlow,
-  type DefaultEdgeOptions,
-  type EdgeProps,
-  type EdgeTypes,
-  type NodeProps,
-  type NodeTypes,
+    ClientSideSuspense,
+    LiveblocksProvider,
+    RoomProvider,
+    useCanRedo,
+    useCanUndo,
+    useHistory,
+    useRedo,
+    useUndo,
+} from "@liveblocks/react/suspense";
+import {
+    Background,
+    BackgroundVariant,
+    ConnectionMode,
+    EdgeLabelRenderer,
+    getSmoothStepPath,
+    Handle,
+    MarkerType,
+    NodeResizer,
+    NodeToolbar,
+    Position,
+    ReactFlow,
+    ReactFlowProvider,
+    useReactFlow,
+    type DefaultEdgeOptions,
+    type EdgeProps,
+    type EdgeTypes,
+    type NodeProps,
+    type NodeTypes,
 } from "@xyflow/react";
 import {
-  Circle as CircleIcon,
-  CircleAlert,
-  Cylinder,
-  Diamond,
-  Hexagon,
-  Maximize2,
-  Pill,
-  RectangleHorizontal,
-  Redo2,
-  Undo2,
-  ZoomIn,
-  ZoomOut,
-  type LucideIcon,
+    CircleAlert,
+    Circle as CircleIcon,
+    Cylinder,
+    Diamond,
+    Hexagon,
+    Maximize2,
+    Pill,
+    RectangleHorizontal,
+    Redo2,
+    Undo2,
+    ZoomIn,
+    ZoomOut,
+    type LucideIcon,
 } from "lucide-react";
 import {
-  Component,
-  type ChangeEvent,
-  type CSSProperties,
-  type DragEvent,
-  type ErrorInfo,
-  type KeyboardEvent,
-  type MouseEvent,
-  type RefObject,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    Component,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ChangeEvent,
+    type CSSProperties,
+    type DragEvent,
+    type ErrorInfo,
+    type KeyboardEvent,
+    type MouseEvent,
+    type ReactNode,
+    type RefObject,
 } from "react";
 
-import { Button } from "@/components/ui/button";
-import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
 import {
-  cloneCanvasTemplate,
-  type CanvasTemplate,
+    cloneCanvasTemplate,
+    type CanvasTemplate,
 } from "@/components/editor/starter-templates";
 import { useStarterTemplates } from "@/components/editor/starter-templates-context";
-import { cn } from "@/lib/utils";
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
+import { Button } from "@/components/ui/button";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { cn } from "@/lib/utils";
 import {
-  CANVAS_EDGE_TYPE,
-  CANVAS_NODE_TYPE,
-  DEFAULT_NODE_COLOR,
-  NODE_COLORS,
-  NODE_DEFAULT_SIZES,
-  type CanvasEdge,
-  type CanvasEdgeData,
-  type CanvasNode,
-  type CanvasNodeColor,
-  type CanvasNodeShape,
-  type CanvasNodeSize,
-  isCanvasNodeShape,
+    CANVAS_EDGE_TYPE,
+    CANVAS_NODE_TYPE,
+    DEFAULT_NODE_COLOR,
+    isCanvasNodeShape,
+    NODE_COLORS,
+    NODE_DEFAULT_SIZES,
+    type CanvasEdge,
+    type CanvasEdgeData,
+    type CanvasNode,
+    type CanvasNodeColor,
+    type CanvasNodeShape,
+    type CanvasNodeSize,
 } from "@/types/canvas";
 
 interface EditorCanvasProps {
@@ -674,6 +674,7 @@ function CanvasEdgeRenderer({
   const [draftLabel, setDraftLabel] = useState(savedLabel);
   const [isEditing, setIsEditing] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     borderRadius: 8,
     offset: 24,
