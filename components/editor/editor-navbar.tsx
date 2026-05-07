@@ -1,7 +1,13 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Share2,
+} from "lucide-react";
 import type { ComponentProps } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -211,17 +217,28 @@ const userProfileAppearance: NonNullable<
 };
 
 interface EditorNavbarProps {
+  isAiSidebarOpen?: boolean;
   isSidebarOpen: boolean;
+  onShareProject?: () => void;
+  onToggleAiSidebar?: () => void;
   onToggleSidebar: () => void;
   className?: string;
+  projectName?: string;
+  showWorkspaceActions?: boolean;
 }
 
 export function EditorNavbar({
+  isAiSidebarOpen = true,
   isSidebarOpen,
+  onShareProject,
+  onToggleAiSidebar,
   onToggleSidebar,
   className,
+  projectName,
+  showWorkspaceActions = false,
 }: EditorNavbarProps) {
   const SidebarIcon = isSidebarOpen ? PanelLeftClose : PanelLeftOpen;
+  const AiSidebarIcon = isAiSidebarOpen ? PanelRightClose : PanelRightOpen;
 
   return (
     <header
@@ -243,10 +260,37 @@ export function EditorNavbar({
       </div>
 
       <div className="flex flex-1 items-center justify-center">
-        <span className="text-sm font-medium text-copy-secondary">Vision AI</span>
+        <span className="max-w-[min(22rem,50vw)] truncate text-sm font-medium text-copy-secondary">
+          {projectName ?? "Vision AI"}
+        </span>
       </div>
 
-      <div className="flex flex-1 items-center justify-end">
+      <div className="flex flex-1 items-center justify-end gap-2">
+        {showWorkspaceActions && (
+          <>
+            <Button
+              aria-label="Share project"
+              disabled={!onShareProject}
+              onClick={onShareProject}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <Share2 />
+            </Button>
+            <Button
+              aria-label={
+                isAiSidebarOpen ? "Close AI sidebar" : "Open AI sidebar"
+              }
+              onClick={onToggleAiSidebar}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <AiSidebarIcon />
+            </Button>
+          </>
+        )}
         <UserButton
           appearance={userButtonAppearance}
           userProfileProps={{ appearance: userProfileAppearance }}

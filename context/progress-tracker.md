@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Wire editor home to project APIs
+- Shape panel implemented
 
 ## Current Goal
 
-- `context/feature-specs/07-wire-editor-home.md` is implemented and verified.
+- `context/feature-specs/12-shape-panel.md` is implemented and verified.
 
 ## Completed
 
@@ -18,7 +18,12 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/04-project-dialogs.md` - editor home content, shared project dialog controller hook, create/rename/delete dialogs, live slug previews, owned-project sidebar actions, hidden collaborator actions, mock project data, and mobile sidebar scrim behavior implemented.
 - `context/feature-specs/05-prisma.md` - Project and ProjectCollaborator Prisma models, cached Prisma client singleton, first migration, and generated Prisma client implemented and verified.
 - `context/feature-specs/06-project-apis.md` - backend-only project list/create/rename/delete REST routes implemented with Clerk authentication, Prisma persistence, create-name defaulting, owner-only rename/delete checks, and consistent `401`/`403` JSON errors.
-- `context/feature-specs/07-wire-editor-home.md` - editor layout now server-loads owned/shared project lists, sidebar uses real project data and workspace links, project dialogs use real create/rename/delete API mutations, create previews and posts a room-aligned project ID, rename refreshes on success, delete redirects active workspaces to `/editor`, and `/editor/[projectId]` is available as the project workspace route.
+- `context/feature-specs/07-wire-editor-home.md` - editor layout now server-loads owned/shared project lists, sidebar uses real project data and workspace links, project dialogs use real create/rename/delete API mutations, create previews and posts a room-aligned project ID, rename refreshes on success, delete redirects active workspaces to `/editor`, and workspace navigation lands on the dynamic editor room route.
+- `context/feature-specs/08-editor-workspace-shell.md` - `/editor/[roomId]` is a server-checked workspace shell, authenticated access is verified by owner or primary-email collaborator, missing and unauthorized projects render `AccessDenied`, the editor navbar shows the active project name with share and AI sidebar actions, the existing project sidebar highlights the current room, and placeholder canvas/AI sidebar surfaces render without canvas, Liveblocks, sharing, or AI chat logic.
+- `context/feature-specs/09-share-dialog.md` - share dialog opens from the workspace navbar, owners can copy the project link with temporary copied feedback, invite collaborators by email, view Clerk-enriched collaborator names/avatars with email fallback, and remove collaborators; collaborators can open the dialog in read-only list mode, while invite/remove mutations are owner-enforced server-side.
+- `context/feature-specs/10-liveblocks-setup.md` - Liveblocks global Presence/UserMeta types, lazy cached server client, deterministic cursor colors, private room creation, and project-access-checked auth token issuance implemented and verified.
+- `context/feature-specs/11-base-canvas.md` - workspace canvas placeholder replaced with a client Liveblocks room wrapper, Liveblocks-synced React Flow nodes and edges, shared canvas types, loose connections, fit view, MiniMap, dot background, and no controls/custom rendering/persistence/AI behavior.
+- `context/feature-specs/12-shape-panel.md` - bottom-center floating shape toolbar, drag payloads with shape and default size data, canvas dragover/drop handling, drop-to-create Liveblocks-backed custom canvas nodes, shape-timestamp-counter node IDs, and a basic bordered custom node renderer implemented and verified.
 - Editor layout integration - `/editor` now wraps route content with `components/editor/editor-layout-shell.tsx`, which coordinates the editor navbar and floating project sidebar state.
 
 ## In Progress
@@ -35,8 +40,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Architecture Decisions
 
+- Liveblocks room IDs are project IDs; `/api/liveblocks-auth` verifies Clerk authentication and owner/collaborator access before creating a private room if needed and issuing a room-scoped session token with user metadata.
+- The Liveblocks server client is lazily cached in `lib/liveblocks.ts` from `LIVEBLOCKS_SECRET_KEY` so builds can complete without initializing the SDK until the auth route runs.
+- `/editor/[roomId]` remains a Server Component and renders the browser-only canvas through `components/editor/editor-canvas.tsx`.
+- React Flow canvas state is stored in the Liveblocks room under the default `flow` storage key through `useLiveblocksFlow`; persistence, AI behavior, custom edge rendering, and controls remain out of scope for the current canvas units.
+- Shared canvas schema lives in `types/canvas.ts`, including `NODE_COLORS`, `NODE_SHAPES`, `canvasNode`, and `canvasEdge` types.
+- Shape panel drops create `canvasNode` nodes with empty labels, `DEFAULT_NODE_COLOR`, the dragged shape value, default dimensions from `NODE_DEFAULT_SIZES`, and IDs in `{shape}-{timestamp}-{counter}` format.
 - Project API responses use `{ projects }` for list routes, `{ project }` for mutation routes, and `{ error }` for error responses.
-- Project API route handlers use Clerk's authenticated `userId` as `Project.ownerId`; the editor sidebar uses a server-side project data helper to load owned projects by owner ID and shared projects by matching the signed-in user's Clerk email addresses against `ProjectCollaborator.email`.
+- Project API route handlers use Clerk's authenticated `userId` as `Project.ownerId`; editor project access helpers load owned projects by owner ID and shared projects by matching the signed-in user's primary Clerk email against `ProjectCollaborator.email`.
+- `/editor/[roomId]` treats the room ID as the project ID for workspace access checks; unauthenticated users are redirected to `/sign-in`, while missing or unauthorized projects render the in-app `AccessDenied` state.
 - Client-created projects use a generated slug plus short suffix as the project ID so the project ID and future Liveblocks room ID stay aligned; `POST /api/projects` still falls back to Prisma's default ID when no ID is supplied.
 - The protected-first Clerk proxy returns JSON `401` responses for unauthenticated API/TRPC requests while preserving auth-page redirects for protected UI routes; API route handlers still re-check authentication before accessing Prisma.
 - shadcn/ui is configured with Radix primitives and lucide icons. Generated files in `components/ui/*` should remain unmodified after installation.
@@ -50,12 +62,44 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Session Notes
 
+- Started shape panel implementation from `context/feature-specs/12-shape-panel.md` after reading the required project context, local Next.js Client Component/CSS docs, and Liveblocks React Flow guidance.
+- Added `NODE_DEFAULT_SIZES` and a shape type guard to `types/canvas.ts`, then extended `components/editor/editor-canvas.tsx` with a bottom-center shape toolbar, typed shape drag payloads, React Flow screen-to-canvas drop conversion, Liveblocks-backed node add changes, and a basic custom canvas node renderer.
+- Verified shape panel implementation with `npm.cmd run lint` and `npm.cmd run build`; the existing dev server at `http://localhost:3000` is responding.
+- Started base canvas implementation from `context/feature-specs/11-base-canvas.md` after reading the required project context, local Next.js Server/Client Component and CSS docs, and Liveblocks React Flow/Suspense guidance.
+- Added `types/canvas.ts` with the shared node data contract, canvas node/edge type constants, node palette, and supported shapes.
+- Updated `liveblocks.config.ts` so room storage can hold the optional React Flow `flow` structure while preserving existing cursor presence and user metadata.
+- Added `components/editor/editor-canvas.tsx`, a client-only Liveblocks provider/room wrapper with `ClientSideSuspense`, a Liveblocks error fallback, and a basic React Flow surface wired to `useLiveblocksFlow({ suspense: true })`.
+- Replaced the `/editor/[roomId]` placeholder with the client canvas island while keeping the workspace page server-side.
+- Added the `--canvas-edge` token and imported React Flow's package stylesheet globally for the base canvas.
+- Verified base canvas with `npm.cmd run lint`, `npm.cmd run build`, and signed-out dev-server smoke checks for `/editor`, `/editor/test-room`, and `/sign-in` on `http://localhost:3000`.
+- Started Liveblocks setup from `context/feature-specs/10-liveblocks-setup.md` after reading the required project context and Liveblocks best-practices guidance.
+- Added `@liveblocks/node` because the server SDK required by the spec was not present in `package.json` or `node_modules`.
+- Added `liveblocks.config.ts` with cursor presence, `isThinking`, and user metadata for display name, avatar URL, and cursor color.
+- Added `lib/liveblocks.ts` with a lazy cached Liveblocks node client, deterministic user-ID-to-color mapping, and private `getOrCreateRoom` helper.
+- Added `POST /api/liveblocks-auth`, which reads Liveblocks' `{ room }` body, requires Clerk auth, checks project access with the existing owner/collaborator helper, ensures the project room exists, and returns a room-scoped Liveblocks session token with user metadata.
+- Verified Liveblocks setup with `npm.cmd run lint`, `npm.cmd run build`, and a signed-out smoke check to `POST /api/liveblocks-auth`, which returned `401` JSON.
+- Started share dialog implementation from `context/feature-specs/09-share-dialog.md` after reading the required project context, local Next.js Server/Client Component, Route Handler, mutation, and `useRouter` docs, plus Clerk Backend API and shadcn/ui guidance.
+- Added the shadcn `avatar` primitive through the CLI for collaborator profile images.
+- Added server-only collaborator sharing helpers for authenticated share access checks, invite email validation, Clerk Backend API email enrichment, and email-only fallback behavior when Clerk users are unavailable.
+- Added `/api/projects/[projectId]/collaborators` for authenticated collaborator listing and owner-only invites, plus `/api/projects/[projectId]/collaborators/[collaboratorId]` for owner-only removal.
+- Added a client share dialog opened by the workspace navbar share button; owners can copy the project link, invite by email, view enriched collaborators, and remove collaborators, while collaborators only see the list.
+- Verified share dialog implementation with `npm.cmd run lint` and `npm.cmd run build`; the build lists both collaborator API routes as dynamic server routes, and a signed-out smoke check to `GET /api/projects/test-room/collaborators` returned `401` JSON.
+- Polished the editor workspace AI sidebar after reviewing `context/screenshots/sidebar-1.png`; restored the panel's column layout, replaced the short ad hoc header divider with the shadcn `Separator`, and composed the body with the installed shadcn `Empty` components. Verified with `npm.cmd run lint` and `npm.cmd run build`.
+- Fixed the editor workspace AI sidebar layout after reviewing `context/screenshots/sidebar.png`; the right sidebar now uses the same fixed floating overlay geometry as the left project sidebar and no longer participates in the main canvas flex layout. Verified with `npm.cmd run lint` and `npm.cmd run build`.
+- Completed editor workspace shell implementation from `context/feature-specs/08-editor-workspace-shell.md`.
+- Added `lib/project-access.ts` with Clerk server identity lookup (`userId` plus primary email) and owner/collaborator project access checks, then reused it from `lib/project-data.ts`.
+- Replaced the previous `/editor/[projectId]` placeholder with `/editor/[roomId]`, where the Server Component redirects unauthenticated users through Clerk and renders `AccessDenied` for missing or unauthorized rooms.
+- Added `components/editor/access-denied.tsx` with a centered lock state and link back to `/editor`.
+- Updated `components/editor/editor-layout-shell.tsx` and `components/editor/editor-navbar.tsx` so the active room is highlighted from the existing project sidebar context, the navbar shows the current project name, the share action is present but disabled, and the AI sidebar toggle controls a placeholder right sidebar.
+- Verified editor workspace shell with `npm.cmd run lint` and `npm.cmd run build`; build output lists `/editor/[roomId]` as the dynamic workspace route.
+- Started a local dev server at `http://localhost:3000` and smoke-checked signed-out HTTP behavior with `curl.exe`: `/editor` and `/editor/test-room` redirect to `/sign-in`, and `/sign-in` returns 200. Browser verification could not run because `agent-browser` is unavailable and tool discovery did not expose the required Node REPL browser-control tool.
+- Started editor workspace shell implementation from `context/feature-specs/08-editor-workspace-shell.md` after reading the required project context, local Next.js dynamic route/page/redirect/Link docs, and Clerk server-auth guidance.
 - Started wire-editor-home implementation from `context/feature-specs/07-wire-editor-home.md` after reading the required project context, local Next.js Server/Client Component, data fetching, mutation, dynamic route, page, `useRouter`, and `usePathname` docs, plus shadcn composition guidance.
 - Added `lib/project-data.ts` for server-only owned/shared project list loading, `lib/project-room-id.ts` and `lib/project-routes.ts` for room-aligned IDs and workspace URLs, and `lib/project-format.ts` for serializable project update labels.
 - Replaced the mock `useProjectDialogs()` state with `hooks/use-project-actions.ts`, which manages dialog state, create room ID suffixes, create/rename/delete API mutations, optimistic local project list overlays, `router.push()` for created workspaces, `router.refresh()` for renames/non-active deletes, and `/editor` redirects for active workspace deletes.
 - Wired `ProjectDialogsProvider`, `EditorLayoutShell`, `ProjectSidebar`, and `ProjectDialogs` to the real project action controller; `EditorHome` is now a Server Component with a small client create button island.
 - Updated `POST /api/projects` to accept an optional validated project ID from the create dialog while preserving the existing default-name and default-ID behavior for callers that omit it.
-- Added the dynamic `/editor/[projectId]` workspace route with authenticated project access lookup so create/sidebar navigation lands on a real route.
+- Added the dynamic editor workspace route with authenticated project access lookup so create/sidebar navigation lands on a real route.
 - Verified wire-editor-home with `npm.cmd run lint` and `npm.cmd run build`; an existing Next dev server is running for this project at `http://localhost:3000`, and signed-out `/editor` still redirects to `/sign-in`.
 - Started backend project API implementation from `context/feature-specs/06-project-apis.md` after reading the required project context, local Next.js Route Handler docs, Clerk API-route guidance, and Prisma CRUD/query guidance.
 - Added `lib/project-api.ts` with shared Clerk auth, JSON object parsing, project-name validation/defaulting, Prisma access, selected project fields, and owner verification helpers.

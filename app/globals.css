@@ -89,6 +89,7 @@
   --state-error: #ff4d4f;
   --state-success: #34d399;
   --state-warning: #fbbf24;
+  --canvas-edge: #f8fafc;
 
   --background: var(--bg-base);
   --foreground: var(--text-primary);
