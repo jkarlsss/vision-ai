@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Shape panel implemented
+- Starter template library implemented
 
 ## Current Goal
 
-- `context/feature-specs/12-shape-panel.md` is implemented and verified.
+- `context/feature-specs/18-starter-template.md` is implemented and verified; select the next feature unit.
 
 ## Completed
 
@@ -24,6 +24,12 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/10-liveblocks-setup.md` - Liveblocks global Presence/UserMeta types, lazy cached server client, deterministic cursor colors, private room creation, and project-access-checked auth token issuance implemented and verified.
 - `context/feature-specs/11-base-canvas.md` - workspace canvas placeholder replaced with a client Liveblocks room wrapper, Liveblocks-synced React Flow nodes and edges, shared canvas types, loose connections, fit view, MiniMap, dot background, and no controls/custom rendering/persistence/AI behavior.
 - `context/feature-specs/12-shape-panel.md` - bottom-center floating shape toolbar, drag payloads with shape and default size data, canvas dragover/drop handling, drop-to-create Liveblocks-backed custom canvas nodes, shape-timestamp-counter node IDs, and a basic bordered custom node renderer implemented and verified.
+- `context/feature-specs/13-node-shape.md` - custom nodes now render rectangle, pill, and circle with CSS surfaces, diamond, hexagon, and cylinder with scalable inline SVG surfaces, selected nodes use brighter borders, and shape drags show a cursor-following ghost preview that clears on drop or drag end.
+- `context/feature-specs/14-node-editing.md` - selected nodes show subtle React Flow resize handles with a minimum node size, resizing syncs through the existing Liveblocks node change flow, node labels can be edited inline from the centered label area, empty labels show centered placeholder text, edits sync as users type, and editing closes on blur or Escape without triggering canvas drag or pan.
+- `context/feature-specs/15-nodes-color-toolbar.md` - selected nodes show a tight floating color swatch toolbar above the node, predefined color pair selection updates both node fill and text color through the Liveblocks-backed React Flow node data, active swatches are visibly selected, and swatch interactions are guarded from node drag and canvas pan.
+- `context/feature-specs/16-edge-behavior.md` - nodes expose subtle hover-revealed top/right/bottom/left connection handles, new connections use the custom canvas edge type with arrows, custom edges use dimmed right-angle routing with a wide invisible interaction path, selected or hovered edges brighten, and inline labels can be edited from the edge midpoint through the Liveblocks-backed React Flow edge data flow.
+- `context/feature-specs/17-canvas-ergonomics.md` - bottom-left pill control bar added above the shape panel with animated React Flow zoom out/fit view/zoom in controls, Liveblocks history-backed undo/redo with dimmed disabled states, keyboard shortcuts in `hooks/use-keyboard-shortcuts.ts` that skip editable fields, and the React Flow MiniMap removed.
+- `context/feature-specs/18-starter-template.md` - static starter template library, shadcn modal with lightweight SVG preview cards, navbar template import entry point, and Liveblocks-backed current-canvas replacement with fit view implemented and verified.
 - Editor layout integration - `/editor` now wraps route content with `components/editor/editor-layout-shell.tsx`, which coordinates the editor navbar and floating project sidebar state.
 
 ## In Progress
@@ -43,9 +49,15 @@ Update this file whenever the current phase, active feature, or implementation s
 - Liveblocks room IDs are project IDs; `/api/liveblocks-auth` verifies Clerk authentication and owner/collaborator access before creating a private room if needed and issuing a room-scoped session token with user metadata.
 - The Liveblocks server client is lazily cached in `lib/liveblocks.ts` from `LIVEBLOCKS_SECRET_KEY` so builds can complete without initializing the SDK until the auth route runs.
 - `/editor/[roomId]` remains a Server Component and renders the browser-only canvas through `components/editor/editor-canvas.tsx`.
-- React Flow canvas state is stored in the Liveblocks room under the default `flow` storage key through `useLiveblocksFlow`; persistence, AI behavior, custom edge rendering, and controls remain out of scope for the current canvas units.
-- Shared canvas schema lives in `types/canvas.ts`, including `NODE_COLORS`, `NODE_SHAPES`, `canvasNode`, and `canvasEdge` types.
+- React Flow canvas state is stored in the Liveblocks room under the default `flow` storage key through `useLiveblocksFlow`; persistence and AI behavior remain out of scope for the current canvas units.
+- Shared canvas schema lives in `types/canvas.ts`, including `NODE_COLORS`, `NODE_SHAPES`, `canvasNode`, `canvasEdge`, and edge label data types.
 - Shape panel drops create `canvasNode` nodes with empty labels, `DEFAULT_NODE_COLOR`, the dragged shape value, default dimensions from `NODE_DEFAULT_SIZES`, and IDs in `{shape}-{timestamp}-{counter}` format.
+- Canvas shape rendering is presentation-only in `components/editor/editor-canvas.tsx`: rectangle, pill, and circle are CSS surfaces, while diamond, hexagon, and cylinder are scalable inline SVG surfaces. The drag preview reuses the same shape renderer and does not write to Liveblocks state.
+- Node editing remains scoped to the existing Liveblocks React Flow state flow: React Flow `NodeResizer` emits dimension changes through `onNodesChange`, and inline label edits use React Flow node data updates so Liveblocks receives controlled node replacement updates.
+- Node color changes remain scoped to the existing Liveblocks React Flow state flow: selected-node swatches are rendered with React Flow `NodeToolbar`, and color selection uses `updateNodeData()` to merge the chosen `NODE_COLORS` fill/text pair into canvas node data without server calls.
+- Edge behavior remains scoped to the existing Liveblocks React Flow state flow: new connections use `CANVAS_EDGE_TYPE` through React Flow `defaultEdgeOptions`, the custom edge renderer uses `getSmoothStepPath()` and `EdgeLabelRenderer`, and edge label saves use `updateEdgeData()` to merge `data.label` without server calls.
+- Canvas ergonomics remain client-only in `components/editor/editor-canvas.tsx`: React Flow instance methods handle animated zoom and fit-view controls, Liveblocks history hooks handle undo/redo, `hooks/use-keyboard-shortcuts.ts` owns window-level shortcut handling and skips editable targets, and the React Flow MiniMap is intentionally removed.
+- Starter templates are static client-importable canvas snapshots in `components/editor/starter-templates.ts`; modal open state is editor-scoped through `StarterTemplatesProvider`, and imports clone the selected template, delete existing Liveblocks React Flow nodes/edges with `onDelete`, add replacements with `onNodesChange`/`onEdgesChange`, and fit the viewport without server persistence.
 - Project API responses use `{ projects }` for list routes, `{ project }` for mutation routes, and `{ error }` for error responses.
 - Project API route handlers use Clerk's authenticated `userId` as `Project.ownerId`; editor project access helpers load owned projects by owner ID and shared projects by matching the signed-in user's primary Clerk email against `ProjectCollaborator.email`.
 - `/editor/[roomId]` treats the room ID as the project ID for workspace access checks; unauthenticated users are redirected to `/sign-in`, while missing or unauthorized projects render the in-app `AccessDenied` state.
@@ -62,6 +74,36 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Session Notes
 
+- Started starter template implementation from `context/feature-specs/18-starter-template.md` after reading the required project context, local Next.js Client Component/CSS docs, and shadcn Button/Card/Dialog/ScrollArea guidance.
+- Added `components/editor/starter-templates.ts` with three starter diagrams and clone helpers that preserve the shared canvas node and edge schema.
+- Added `components/editor/starter-templates-modal.tsx` with a shadcn dialog, scrollable template card grid, import actions, and lightweight SVG previews calculated from template node bounds.
+- Added editor-scoped starter template modal state through `components/editor/starter-templates-context.tsx` and wired a navbar `LayoutTemplate` button to open it from active workspaces.
+- Wired template import through the existing Liveblocks React Flow state flow: delete the current graph, add cloned template nodes and edges, group the operation with Liveblocks history pause/resume, and fit the viewport after load.
+- Verified starter templates with `npm.cmd run lint`, `npm.cmd run build`, and the existing dev server at `http://localhost:3000`.
+- Started canvas ergonomics implementation from `context/feature-specs/17-canvas-ergonomics.md` after reading the required project context, local Next.js Client Component/CSS docs, and the existing React Flow/Liveblocks canvas code.
+- Added a bottom-left pill control bar above the shape panel with grouped icon-only zoom and history controls separated by a thin divider.
+- Wired zoom out, fit view, and zoom in to the React Flow instance with short viewport animations, and wired undo/redo to Liveblocks history hooks with disabled states based on `useCanUndo()` and `useCanRedo()`.
+- Added `hooks/use-keyboard-shortcuts.ts` for window-level zoom and history shortcuts, including `+`/`=`, `-`, `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, and `Cmd/Ctrl+Y`, while skipping input, textarea, contenteditable, and textbox targets.
+- Removed the React Flow MiniMap from the canvas and updated `context/ui-context.md` to document the canvas control bar pattern.
+- Verified canvas ergonomics implementation with `npm.cmd run lint` and `npm.cmd run build`.
+- Confirmed an existing local dev server is responding at `http://localhost:3000`; signed-out `/editor` redirects to `/sign-in`, and `/sign-in` returns 200.
+- Reviewed `context/screenshots/toolbar.png` and aligned the bottom-left canvas control bar to the same bottom offset as the center shape toolbar; updated `context/ui-context.md` to document that aligned placement.
+- Verified the toolbar alignment polish with `npm.cmd run lint` and `npm.cmd run build`.
+- Started edge behavior implementation from `context/feature-specs/16-edge-behavior.md` after reading the required project context and local Next.js Client Component/CSS docs.
+- Added the custom `canvasEdge` React Flow renderer with smooth-step right-angle paths, rounded visible strokes, dim/active opacity states, a wide transparent hit path, midpoint `EdgeLabelRenderer` labels, and save-on-blur/Enter/Escape inline editing through `updateEdgeData()`.
+- Updated node handles with stable side IDs so top, right, bottom, and left handles can be used for loose-mode connections between any node sides.
+- Updated `context/ui-context.md` to document the custom edge rendering and label behavior.
+- Verified edge behavior implementation with `npm.cmd run lint` and `npm.cmd run build`; a local dev server is available at `http://localhost:3000`, and signed-out `/editor` plus `/editor/test-room` requests redirect to `/sign-in`.
+- Started node color toolbar implementation from `context/feature-specs/15-nodes-color-toolbar.md` after reading the required project context, local Next.js Client Component/CSS docs, and the existing React Flow node editing/color constants.
+- Added a selected-node React Flow `NodeToolbar` with one swatch per `NODE_COLORS` pair, active and hover ring/glow styling based on the paired text color, and `nodrag`/`nopan`/event propagation guards for toolbar interactions.
+- Verified node color toolbar implementation with `npm.cmd run lint` and `npm.cmd run build`.
+- Started node editing implementation from `context/feature-specs/14-node-editing.md` after reading the required project context, local Next.js Client Component/CSS docs, and Liveblocks React Flow guidance.
+- Added selected-node resize controls with a shared minimum size and theme-token handle styling, then added centered inline label editing with empty-label placeholder text, blur/Escape close behavior, and `nodrag`/`nopan` text interaction guards.
+- Verified node editing implementation with `npm.cmd run lint` and `npm.cmd run build`; the existing dev server at `http://localhost:3000` is responding and signed-out `/editor` redirects to `/sign-in`.
+- Started node shape implementation from `context/feature-specs/13-node-shape.md` after reading the required project context and local Next.js Client Component/CSS docs.
+- Replaced the placeholder custom node surface with shape-aware CSS/SVG rendering, preserving the existing Liveblocks-backed node data and React Flow node type.
+- Added a cursor-following shape drag preview that uses the same dragged shape/default size as the eventual drop payload and clears on canvas drop or drag end.
+- Verified node shape implementation with `npm.cmd run lint` and `npm.cmd run build`.
 - Started shape panel implementation from `context/feature-specs/12-shape-panel.md` after reading the required project context, local Next.js Client Component/CSS docs, and Liveblocks React Flow guidance.
 - Added `NODE_DEFAULT_SIZES` and a shape type guard to `types/canvas.ts`, then extended `components/editor/editor-canvas.tsx` with a bottom-center shape toolbar, typed shape drag payloads, React Flow screen-to-canvas drop conversion, Liveblocks-backed node add changes, and a basic custom canvas node renderer.
 - Verified shape panel implementation with `npm.cmd run lint` and `npm.cmd run build`; the existing dev server at `http://localhost:3000` is responding.

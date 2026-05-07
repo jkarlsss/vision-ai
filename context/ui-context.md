@@ -69,7 +69,9 @@ Default node color: `#1F1F1F` with `#EDEDED` text.
 
 ### Edge Style
 
-Smooth-step path with an arrow marker. Default edge color: `--canvas-edge` (`#f8fafc`). Stroke width is thin — edges are visually secondary to nodes.
+Custom canvas edges use smooth-step right-angle routing with rounded stroke ends and an arrow marker. Default edge color: `--canvas-edge` (`#f8fafc`). Edges are thin and slightly dimmed at rest, brighten on hover or selection, and use a wider invisible interaction path so they are easier to hover and click without making the visible line heavier.
+
+Edge labels render as small inline pill badges at the path midpoint. Double-clicking an edge opens an inline label input positioned through React Flow's `EdgeLabelRenderer`.
 
 ### Node Shapes
 
@@ -85,6 +87,10 @@ Smooth-step path with an arrow marker. Default edge color: `--canvas-edge` (`#f8
 ### Connection Handles
 
 Small white circular handles, hidden by default, revealed on node hover. Appear at all four sides of a node.
+
+### Canvas Controls
+
+A compact pill-shaped control bar sits at the bottom-left of the canvas, aligned to the same bottom offset as the center shape panel. It uses icon-only buttons for zoom out, fit view, zoom in, undo, and redo, with a thin divider between zoom and history controls. Zoom actions animate the React Flow viewport briefly. Undo and redo use Liveblocks history and render disabled states dimmed when unavailable. The React Flow MiniMap is not shown.
 
 ### Canvas Background
 
