@@ -25,6 +25,7 @@ All colors are defined as CSS custom properties in `globals.css` and mapped to T
 | Error            | `--state-error`        | `#ff4d4f`                 |
 | Success          | `--state-success`      | `#34d399`                 |
 | Warning          | `--state-warning`      | `#fbbf24`                 |
+| Canvas edge      | `--canvas-edge`        | `#f8fafc`                 |
 
 Tailwind utility names map to these variables. Use `bg-base`, `bg-surface`, `text-copy-primary`, `text-copy-muted`, `border-surface-border`, `text-brand`, `bg-accent-dim`, etc.
 
@@ -68,7 +69,7 @@ Default node color: `#1F1F1F` with `#EDEDED` text.
 
 ### Edge Style
 
-Smooth-step path with an arrow marker. Default edge color: `#f8fafc`. Stroke width is thin — edges are visually secondary to nodes.
+Smooth-step path with an arrow marker. Default edge color: `--canvas-edge` (`#f8fafc`). Stroke width is thin — edges are visually secondary to nodes.
 
 ### Node Shapes
 

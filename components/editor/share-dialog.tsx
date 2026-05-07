@@ -3,11 +3,7 @@
 import { Check, Copy, MailPlus, Trash2, Users } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -68,11 +64,7 @@ interface ApiErrorResponse {
 const shareInputClassName =
   "text-copy-primary caret-copy-primary placeholder:text-copy-muted [&::placeholder]:[-webkit-text-fill-color:var(--text-muted)] [-webkit-text-fill-color:var(--text-primary)]";
 
-export function ShareDialog({
-  onOpenChange,
-  open,
-  project,
-}: ShareDialogProps) {
+export function ShareDialog({ onOpenChange, open, project }: ShareDialogProps) {
   const [access, setAccess] = useState<ProjectAccess>(
     project?.access ?? "collaborator",
   );
@@ -161,8 +153,7 @@ export function ShareDialog({
 
       setCollaborators((currentCollaborators) => [
         ...currentCollaborators.filter(
-          (currentCollaborator) =>
-            currentCollaborator.id !== collaborator.id,
+          (currentCollaborator) => currentCollaborator.id !== collaborator.id,
         ),
         collaborator,
       ]);
@@ -481,7 +472,11 @@ async function readResponseJson(response: Response): Promise<unknown> {
     return {};
   }
 
-  return JSON.parse(text) as unknown;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return {};
+  }
 }
 
 function getCollaboratorsUrl(projectId: string) {
@@ -513,7 +508,9 @@ function getCollaboratorInitials(label: string) {
   return initials || "?";
 }
 
-function isCollaboratorsResponse(value: unknown): value is CollaboratorsResponse {
+function isCollaboratorsResponse(
+  value: unknown,
+): value is CollaboratorsResponse {
   return (
     isRecord(value) &&
     isProjectAccess(value.access) &&

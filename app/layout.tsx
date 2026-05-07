@@ -3,6 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import { clerkAppearance } from "@/lib/clerk-appearance";
 import { editorPath, signInPath, signUpPath } from "@/lib/auth-routes";
+import "@xyflow/react/dist/style.css";
 import "./globals.css";
 
 const geistSans = Geist({

@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Share dialog implemented
+- Shape panel implemented
 
 ## Current Goal
 
-- `context/feature-specs/09-share-dialog.md` is implemented and verified.
+- `context/feature-specs/12-shape-panel.md` is implemented and verified.
 
 ## Completed
 
@@ -21,6 +21,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/07-wire-editor-home.md` - editor layout now server-loads owned/shared project lists, sidebar uses real project data and workspace links, project dialogs use real create/rename/delete API mutations, create previews and posts a room-aligned project ID, rename refreshes on success, delete redirects active workspaces to `/editor`, and workspace navigation lands on the dynamic editor room route.
 - `context/feature-specs/08-editor-workspace-shell.md` - `/editor/[roomId]` is a server-checked workspace shell, authenticated access is verified by owner or primary-email collaborator, missing and unauthorized projects render `AccessDenied`, the editor navbar shows the active project name with share and AI sidebar actions, the existing project sidebar highlights the current room, and placeholder canvas/AI sidebar surfaces render without canvas, Liveblocks, sharing, or AI chat logic.
 - `context/feature-specs/09-share-dialog.md` - share dialog opens from the workspace navbar, owners can copy the project link with temporary copied feedback, invite collaborators by email, view Clerk-enriched collaborator names/avatars with email fallback, and remove collaborators; collaborators can open the dialog in read-only list mode, while invite/remove mutations are owner-enforced server-side.
+- `context/feature-specs/10-liveblocks-setup.md` - Liveblocks global Presence/UserMeta types, lazy cached server client, deterministic cursor colors, private room creation, and project-access-checked auth token issuance implemented and verified.
+- `context/feature-specs/11-base-canvas.md` - workspace canvas placeholder replaced with a client Liveblocks room wrapper, Liveblocks-synced React Flow nodes and edges, shared canvas types, loose connections, fit view, MiniMap, dot background, and no controls/custom rendering/persistence/AI behavior.
+- `context/feature-specs/12-shape-panel.md` - bottom-center floating shape toolbar, drag payloads with shape and default size data, canvas dragover/drop handling, drop-to-create Liveblocks-backed custom canvas nodes, shape-timestamp-counter node IDs, and a basic bordered custom node renderer implemented and verified.
 - Editor layout integration - `/editor` now wraps route content with `components/editor/editor-layout-shell.tsx`, which coordinates the editor navbar and floating project sidebar state.
 
 ## In Progress
@@ -37,6 +40,12 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Architecture Decisions
 
+- Liveblocks room IDs are project IDs; `/api/liveblocks-auth` verifies Clerk authentication and owner/collaborator access before creating a private room if needed and issuing a room-scoped session token with user metadata.
+- The Liveblocks server client is lazily cached in `lib/liveblocks.ts` from `LIVEBLOCKS_SECRET_KEY` so builds can complete without initializing the SDK until the auth route runs.
+- `/editor/[roomId]` remains a Server Component and renders the browser-only canvas through `components/editor/editor-canvas.tsx`.
+- React Flow canvas state is stored in the Liveblocks room under the default `flow` storage key through `useLiveblocksFlow`; persistence, AI behavior, custom edge rendering, and controls remain out of scope for the current canvas units.
+- Shared canvas schema lives in `types/canvas.ts`, including `NODE_COLORS`, `NODE_SHAPES`, `canvasNode`, and `canvasEdge` types.
+- Shape panel drops create `canvasNode` nodes with empty labels, `DEFAULT_NODE_COLOR`, the dragged shape value, default dimensions from `NODE_DEFAULT_SIZES`, and IDs in `{shape}-{timestamp}-{counter}` format.
 - Project API responses use `{ projects }` for list routes, `{ project }` for mutation routes, and `{ error }` for error responses.
 - Project API route handlers use Clerk's authenticated `userId` as `Project.ownerId`; editor project access helpers load owned projects by owner ID and shared projects by matching the signed-in user's primary Clerk email against `ProjectCollaborator.email`.
 - `/editor/[roomId]` treats the room ID as the project ID for workspace access checks; unauthenticated users are redirected to `/sign-in`, while missing or unauthorized projects render the in-app `AccessDenied` state.
@@ -53,6 +62,22 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Session Notes
 
+- Started shape panel implementation from `context/feature-specs/12-shape-panel.md` after reading the required project context, local Next.js Client Component/CSS docs, and Liveblocks React Flow guidance.
+- Added `NODE_DEFAULT_SIZES` and a shape type guard to `types/canvas.ts`, then extended `components/editor/editor-canvas.tsx` with a bottom-center shape toolbar, typed shape drag payloads, React Flow screen-to-canvas drop conversion, Liveblocks-backed node add changes, and a basic custom canvas node renderer.
+- Verified shape panel implementation with `npm.cmd run lint` and `npm.cmd run build`; the existing dev server at `http://localhost:3000` is responding.
+- Started base canvas implementation from `context/feature-specs/11-base-canvas.md` after reading the required project context, local Next.js Server/Client Component and CSS docs, and Liveblocks React Flow/Suspense guidance.
+- Added `types/canvas.ts` with the shared node data contract, canvas node/edge type constants, node palette, and supported shapes.
+- Updated `liveblocks.config.ts` so room storage can hold the optional React Flow `flow` structure while preserving existing cursor presence and user metadata.
+- Added `components/editor/editor-canvas.tsx`, a client-only Liveblocks provider/room wrapper with `ClientSideSuspense`, a Liveblocks error fallback, and a basic React Flow surface wired to `useLiveblocksFlow({ suspense: true })`.
+- Replaced the `/editor/[roomId]` placeholder with the client canvas island while keeping the workspace page server-side.
+- Added the `--canvas-edge` token and imported React Flow's package stylesheet globally for the base canvas.
+- Verified base canvas with `npm.cmd run lint`, `npm.cmd run build`, and signed-out dev-server smoke checks for `/editor`, `/editor/test-room`, and `/sign-in` on `http://localhost:3000`.
+- Started Liveblocks setup from `context/feature-specs/10-liveblocks-setup.md` after reading the required project context and Liveblocks best-practices guidance.
+- Added `@liveblocks/node` because the server SDK required by the spec was not present in `package.json` or `node_modules`.
+- Added `liveblocks.config.ts` with cursor presence, `isThinking`, and user metadata for display name, avatar URL, and cursor color.
+- Added `lib/liveblocks.ts` with a lazy cached Liveblocks node client, deterministic user-ID-to-color mapping, and private `getOrCreateRoom` helper.
+- Added `POST /api/liveblocks-auth`, which reads Liveblocks' `{ room }` body, requires Clerk auth, checks project access with the existing owner/collaborator helper, ensures the project room exists, and returns a room-scoped Liveblocks session token with user metadata.
+- Verified Liveblocks setup with `npm.cmd run lint`, `npm.cmd run build`, and a signed-out smoke check to `POST /api/liveblocks-auth`, which returned `401` JSON.
 - Started share dialog implementation from `context/feature-specs/09-share-dialog.md` after reading the required project context, local Next.js Server/Client Component, Route Handler, mutation, and `useRouter` docs, plus Clerk Backend API and shadcn/ui guidance.
 - Added the shadcn `avatar` primitive through the CLI for collaborator profile images.
 - Added server-only collaborator sharing helpers for authenticated share access checks, invite email validation, Clerk Backend API email enrichment, and email-only fallback behavior when Clerk users are unavailable.
