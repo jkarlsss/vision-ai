@@ -13,6 +13,10 @@ import {
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog } from "@/components/editor/share-dialog";
 import {
+  StarterTemplatesProvider,
+  useStarterTemplates,
+} from "@/components/editor/starter-templates-context";
+import {
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -38,8 +42,10 @@ export function EditorLayoutShell({
       ownedProjects={ownedProjects}
       sharedProjects={sharedProjects}
     >
-      <EditorLayoutShellContent>{children}</EditorLayoutShellContent>
-      <ProjectDialogs />
+      <StarterTemplatesProvider>
+        <EditorLayoutShellContent>{children}</EditorLayoutShellContent>
+        <ProjectDialogs />
+      </StarterTemplatesProvider>
     </ProjectDialogsProvider>
   );
 }
@@ -51,6 +57,7 @@ interface EditorLayoutShellContentProps {
 function EditorLayoutShellContent({ children }: EditorLayoutShellContentProps) {
   const pathname = usePathname();
   const { ownedProjects, sharedProjects } = useProjectDialogsContext();
+  const { openStarterTemplates } = useStarterTemplates();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
@@ -66,6 +73,9 @@ function EditorLayoutShellContent({ children }: EditorLayoutShellContentProps) {
         isSidebarOpen={isSidebarOpen}
         onShareProject={
           activeProject ? () => setIsShareDialogOpen(true) : undefined
+        }
+        onOpenStarterTemplates={
+          activeProject ? openStarterTemplates : undefined
         }
         onToggleAiSidebar={() => setIsAiSidebarOpen((isOpen) => !isOpen)}
         onToggleSidebar={() => setIsSidebarOpen((isOpen) => !isOpen)}

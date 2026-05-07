@@ -49,7 +49,9 @@ export interface CanvasNodeData extends Record<string, unknown> {
   shape: CanvasNodeShape;
 }
 
-export type CanvasEdgeData = Record<string, never>;
+export interface CanvasEdgeData extends Record<string, unknown> {
+  label?: string;
+}
 
 export type CanvasNode = Node<CanvasNodeData, typeof CANVAS_NODE_TYPE>;
 export type CanvasEdge = Edge<
