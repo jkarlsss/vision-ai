@@ -76,8 +76,6 @@ export function useCanvasAutosave({
 
     const abortController = new AbortController();
 
-    const abortController = new AbortController();
-
     requestSavedCanvas(projectId, abortController.signal)
       .then((savedCanvas) => {
         if (abortController.signal.aborted) {
