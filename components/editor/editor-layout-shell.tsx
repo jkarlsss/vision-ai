@@ -9,6 +9,7 @@ import {
   useCanvasSaveStatus,
 } from "@/components/editor/canvas-save-status-context";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
+import { EditorRoomProvider } from "@/components/editor/editor-room-provider";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import {
   ProjectDialogsProvider,
@@ -92,12 +93,18 @@ function EditorLayoutShellContent({ children }: EditorLayoutShellContentProps) {
         onClose={() => setIsSidebarOpen(false)}
       />
       <main className="relative flex min-h-0 flex-1 overflow-hidden">
-        {children}
-        {activeProject && (
-          <AiSidebar
-            isOpen={isAiSidebarOpen}
-            onClose={() => setIsAiSidebarOpen(false)}
-          />
+        {activeProject ? (
+          <EditorRoomProvider roomId={activeProject.id}>
+            {children}
+            <AiSidebar
+              isOpen={isAiSidebarOpen}
+              onClose={() => setIsAiSidebarOpen(false)}
+              projectId={activeProject.id}
+              roomId={activeProject.id}
+            />
+          </EditorRoomProvider>
+        ) : (
+          children
         )}
       </main>
       <ShareDialog

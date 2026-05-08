@@ -8,6 +8,8 @@ import {
   getLiveblocksClient,
   getLiveblocksCursorColor,
 } from "@/lib/liveblocks";
+import { ensureAiChatFeed } from "@/lib/liveblocks-ai-chat";
+import { ensureAiStatusFeed } from "@/lib/liveblocks-ai-status";
 import { isValidProjectRoomId } from "@/lib/project-room-id";
 
 interface AuthenticatedLiveblocksUser {
@@ -50,6 +52,10 @@ export async function POST(request: Request) {
   }
 
   await ensureLiveblocksRoom(accessResult.project.id);
+  await Promise.all([
+    ensureAiStatusFeed(accessResult.project.id),
+    ensureAiChatFeed(accessResult.project.id),
+  ]);
 
   const liveblocks = getLiveblocksClient();
   const session = liveblocks.prepareSession(userResult.identity.userId, {

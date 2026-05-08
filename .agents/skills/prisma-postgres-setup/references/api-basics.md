@@ -2,6 +2,10 @@
 
 Core conventions for the Prisma Management API. All three `prisma-postgres-*` skills share these patterns.
 
+## Scope Boundary
+
+This reference is only for Prisma Management API work. Product realtime features, such as the Vision AI sidebar chat feed, should use Liveblocks room feeds like `ai-chat` and must not add Prisma Management API calls or database persistence unless a feature spec explicitly requires it.
+
 ## Base URL
 
 ```

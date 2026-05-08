@@ -1,6 +1,12 @@
 import type { LiveblocksFlow } from "@liveblocks/react-flow";
 
 import type { CanvasEdge, CanvasNode } from "@/types/canvas";
+import type {
+  AiChatFeedMetadata,
+  AiChatFeedPayload,
+  AiStatusFeedMetadata,
+  AiStatusFeedPayload,
+} from "@/types/tasks";
 
 declare global {
   interface Liveblocks {
@@ -9,7 +15,7 @@ declare global {
         x: number;
         y: number;
       } | null;
-      thinking: boolean;
+      thinking?: boolean;
     };
 
     Storage: {
@@ -27,6 +33,8 @@ declare global {
 
     RoomEvent: never;
     ThreadMetadata: Record<string, never>;
+    FeedMetadata: AiChatFeedMetadata | AiStatusFeedMetadata;
+    FeedMessageData: AiChatFeedPayload | AiStatusFeedPayload;
     RoomInfo: Record<string, never>;
     GroupInfo: Record<string, never>;
     ActivitiesData: Record<string, never>;
