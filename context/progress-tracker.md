@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Starter template library implemented
+- Canvas autosave private Blob fix implemented
 
 ## Current Goal
 
-- `context/feature-specs/18-starter-template.md` is implemented and verified; select the next feature unit.
+- `context/current-issues.md` autosave private Blob issue is implemented and verified; select the next feature unit.
 
 ## Completed
 
@@ -30,6 +30,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/16-edge-behavior.md` - nodes expose subtle hover-revealed top/right/bottom/left connection handles, new connections use the custom canvas edge type with arrows, custom edges use dimmed right-angle routing with a wide invisible interaction path, selected or hovered edges brighten, and inline labels can be edited from the edge midpoint through the Liveblocks-backed React Flow edge data flow.
 - `context/feature-specs/17-canvas-ergonomics.md` - bottom-left pill control bar added above the shape panel with animated React Flow zoom out/fit view/zoom in controls, Liveblocks history-backed undo/redo with dimmed disabled states, keyboard shortcuts in `hooks/use-keyboard-shortcuts.ts` that skip editable fields, and the React Flow MiniMap removed.
 - `context/feature-specs/18-starter-template.md` - static starter template library, shadcn modal with lightweight SVG preview cards, navbar template import entry point, and Liveblocks-backed current-canvas replacement with fit view implemented and verified.
+- `context/feature-specs/19-presence-avatars-cursor.md` - canvas-only participant avatar group with Clerk `UserButton`, current-user filtering from Clerk session ID, collaborator avatar stack with overflow, Liveblocks-backed cursor broadcasting, and custom collaborator cursors implemented and verified.
+- `context/feature-specs/20-ai-sidebar-shell.md` - existing placeholder separated into a parent-controlled floating AI sidebar component with the AI Workspace header, AI Architect and Specs tabs, empty state starter chips, local-only chat draft UI, styled user/assistant message bubbles, and a static demo spec card.
+- `context/feature-specs/21-canvas-autosave.md` - `@vercel/blob` installed, canvas save/load API route added, existing `Project.canvasJsonPath` reused for the saved blob URL, shared canvas snapshot validation added, debounced autosave/load hook implemented, saved snapshots load only into empty Liveblocks rooms, and the editor navbar Save button shows saving/saved/error status.
 - Editor layout integration - `/editor` now wraps route content with `components/editor/editor-layout-shell.tsx`, which coordinates the editor navbar and floating project sidebar state.
 
 ## In Progress
@@ -49,7 +52,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Liveblocks room IDs are project IDs; `/api/liveblocks-auth` verifies Clerk authentication and owner/collaborator access before creating a private room if needed and issuing a room-scoped session token with user metadata.
 - The Liveblocks server client is lazily cached in `lib/liveblocks.ts` from `LIVEBLOCKS_SECRET_KEY` so builds can complete without initializing the SDK until the auth route runs.
 - `/editor/[roomId]` remains a Server Component and renders the browser-only canvas through `components/editor/editor-canvas.tsx`.
-- React Flow canvas state is stored in the Liveblocks room under the default `flow` storage key through `useLiveblocksFlow`; persistence and AI behavior remain out of scope for the current canvas units.
+- React Flow canvas state is stored in the Liveblocks room under the default `flow` storage key through `useLiveblocksFlow`; Vercel Blob autosave now persists canvas snapshots, while AI behavior remains out of scope for the current canvas units.
 - Shared canvas schema lives in `types/canvas.ts`, including `NODE_COLORS`, `NODE_SHAPES`, `canvasNode`, `canvasEdge`, and edge label data types.
 - Shape panel drops create `canvasNode` nodes with empty labels, `DEFAULT_NODE_COLOR`, the dragged shape value, default dimensions from `NODE_DEFAULT_SIZES`, and IDs in `{shape}-{timestamp}-{counter}` format.
 - Canvas shape rendering is presentation-only in `components/editor/editor-canvas.tsx`: rectangle, pill, and circle are CSS surfaces, while diamond, hexagon, and cylinder are scalable inline SVG surfaces. The drag preview reuses the same shape renderer and does not write to Liveblocks state.
@@ -58,6 +61,10 @@ Update this file whenever the current phase, active feature, or implementation s
 - Edge behavior remains scoped to the existing Liveblocks React Flow state flow: new connections use `CANVAS_EDGE_TYPE` through React Flow `defaultEdgeOptions`, the custom edge renderer uses `getSmoothStepPath()` and `EdgeLabelRenderer`, and edge label saves use `updateEdgeData()` to merge `data.label` without server calls.
 - Canvas ergonomics remain client-only in `components/editor/editor-canvas.tsx`: React Flow instance methods handle animated zoom and fit-view controls, Liveblocks history hooks handle undo/redo, `hooks/use-keyboard-shortcuts.ts` owns window-level shortcut handling and skips editable targets, and the React Flow MiniMap is intentionally removed.
 - Starter templates are static client-importable canvas snapshots in `components/editor/starter-templates.ts`; modal open state is editor-scoped through `StarterTemplatesProvider`, and imports clone the selected template, delete existing Liveblocks React Flow nodes/edges with `onDelete`, add replacements with `onNodesChange`/`onEdgesChange`, and fit the viewport without server persistence.
+- Presence avatars and cursors remain canvas-only in `components/editor/editor-canvas.tsx`: the shared editor navbar still owns its existing `UserButton`, the canvas renders a separate room participant group, Clerk's active `userId` filters Liveblocks others for avatars/cursors, and React Flow mouse movement writes `{ cursor }` to typed Liveblocks presence while mouse leave clears it.
+- AI sidebar shell behavior remains client-only in `components/editor/ai-sidebar.tsx`: `EditorLayoutShell` owns the open/close state, the sidebar preserves the existing right-side floating overlay animation, and chat/spec interactions are static UI without backend, Liveblocks, or AI generation calls.
+- Canvas persistence uses `PUT`/`GET /api/projects/[projectId]/canvas` with the existing owner-or-collaborator access model; Prisma stores only the saved Vercel Blob URL in `Project.canvasJsonPath`, while private snapshot JSON is uploaded to `canvas/{projectId}.json` in Vercel Blob and loaded through the Blob SDK rather than unauthenticated URL fetches.
+- Canvas autosave remains client-side in `hooks/use-canvas-autosave.ts`: it loads a saved Blob snapshot only when the Liveblocks React Flow room has no active nodes or edges, tracks the last saved snapshot to avoid duplicate writes, debounces canvas mutations before saving, and exposes saving/saved/error state through the editor save-status context and navbar Save button.
 - Project API responses use `{ projects }` for list routes, `{ project }` for mutation routes, and `{ error }` for error responses.
 - Project API route handlers use Clerk's authenticated `userId` as `Project.ownerId`; editor project access helpers load owned projects by owner ID and shared projects by matching the signed-in user's primary Clerk email against `ProjectCollaborator.email`.
 - `/editor/[roomId]` treats the room ID as the project ID for workspace access checks; unauthenticated users are redirected to `/sign-in`, while missing or unauthorized projects render the in-app `AccessDenied` state.
@@ -74,6 +81,26 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Session Notes
 
+- Fixed the private Vercel Blob autosave issue from `context/current-issues.md` after reviewing `context/screenshots/autosave.png`, `hooks/use-canvas-autosave.ts`, the canvas API route, and the local Vercel Blob SDK docs.
+- Identified the root cause as the canvas API route treating private Blob URLs like public URLs on load and allowing Blob SDK upload errors to escape as raw `500` responses on save.
+- Updated `app/api/projects/[projectId]/canvas/route.ts` so canvas snapshots are uploaded with explicit private Blob access and deterministic paths, Blob upload failures return JSON `502` errors instead of uncaught `500`s, and saved snapshots are read through `@vercel/blob` `get()` using the stored URL pathname with `access: "private"`.
+- Verified the private Blob autosave route fix with `npm.cmd run lint`, `npm.cmd run build`, and a signed-out smoke check where `GET /api/projects/test-room/canvas` returns `401` JSON.
+- Started canvas autosave implementation from `context/feature-specs/21-canvas-autosave.md` after reading the required project context, local Next.js Route Handler and Client Component docs, Liveblocks React Flow guidance, Vercel Blob storage guidance, and Prisma CLI guidance.
+- Installed `@vercel/blob` and reused the existing `Project.canvasJsonPath` field, so no Prisma schema migration was needed.
+- Added `app/api/projects/[projectId]/canvas/route.ts` with authenticated owner/collaborator access, validated canvas snapshot input, Vercel Blob upload to `canvas/{projectId}.json`, Prisma URL persistence, and saved snapshot fetch on load.
+- Added shared canvas snapshot serialization/parsing in `types/canvas.ts`, `hooks/use-canvas-autosave.ts` for debounced autosaves plus empty-room-only saved snapshot loading, and `components/editor/canvas-save-status-context.tsx` for editor-wide save state.
+- Wired the canvas autosave hook into `components/editor/editor-canvas.tsx` and added a navbar Save status button through `components/editor/editor-layout-shell.tsx` and `components/editor/editor-navbar.tsx`.
+- Verified canvas autosave implementation with `npm.cmd run lint`, `npm.cmd run build`, and the existing dev server at `http://localhost:3000`; signed-out `/editor` redirects to `/sign-in`, and signed-out `GET /api/projects/test-room/canvas` returns `401` JSON.
+- Started AI sidebar shell implementation from `context/feature-specs/20-ai-sidebar-shell.md` after reading the required project context, local Next.js Client Component/CSS docs, and shadcn Button/Textarea/Tabs guidance.
+- Added `components/editor/ai-sidebar.tsx` as the separated parent-controlled floating sidebar, preserving the right-side fixed overlay animation while adding the AI Workspace header, AI Architect/Specs tabs, local-only prompt UI, and static spec card.
+- Replaced the inline AI sidebar placeholder in `components/editor/editor-layout-shell.tsx` with the new `AiSidebar` component and kept sidebar open/close state in the existing editor shell.
+- Verified AI sidebar shell implementation with `npm.cmd run lint` and `npm.cmd run build`.
+- Started presence avatars and live cursor implementation from `context/feature-specs/19-presence-avatars-cursor.md` after reading the required project context, local Next.js Client Component/CSS docs, and Liveblocks best-practices guidance for typed presence, React Flow, Suspense hooks, user metadata, and performant others rendering.
+- Extracted the existing Clerk `UserButton` appearance into `components/editor/clerk-user-button-appearance.ts`, then reused it from both the unchanged shared editor navbar and the new canvas participant group.
+- Updated `liveblocks.config.ts` and `context/feature-specs/10-liveblocks-setup.md` so shared Presence now uses `cursor` plus `thinking` as required by feature 19.
+- Added the canvas-only top-right participant group in `components/editor/editor-canvas.tsx`: collaborators come from Liveblocks others, are filtered against Clerk's active session user ID, render as a five-avatar overlapping stack with initials/image fallbacks and `+N` overflow, and only show the divider when collaborators exist.
+- Added Liveblocks cursor broadcasting from React Flow mouse movement and mouse leave, plus custom collaborator cursor rendering through the React Flow viewport portal using each participant's cursor color and display name.
+- Verified presence avatars and live cursors with `npm.cmd run lint` and `npm.cmd run build`.
 - Started starter template implementation from `context/feature-specs/18-starter-template.md` after reading the required project context, local Next.js Client Component/CSS docs, and shadcn Button/Card/Dialog/ScrollArea guidance.
 - Added `components/editor/starter-templates.ts` with three starter diagrams and clone helpers that preserve the shared canvas node and edge schema.
 - Added `components/editor/starter-templates-modal.tsx` with a shadcn dialog, scrollable template card grid, import actions, and lightweight SVG previews calculated from template node bounds.
@@ -116,7 +143,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Verified base canvas with `npm.cmd run lint`, `npm.cmd run build`, and signed-out dev-server smoke checks for `/editor`, `/editor/test-room`, and `/sign-in` on `http://localhost:3000`.
 - Started Liveblocks setup from `context/feature-specs/10-liveblocks-setup.md` after reading the required project context and Liveblocks best-practices guidance.
 - Added `@liveblocks/node` because the server SDK required by the spec was not present in `package.json` or `node_modules`.
-- Added `liveblocks.config.ts` with cursor presence, `isThinking`, and user metadata for display name, avatar URL, and cursor color.
+- Added `liveblocks.config.ts` with cursor presence, `thinking`, and user metadata for display name, avatar URL, and cursor color.
 - Added `lib/liveblocks.ts` with a lazy cached Liveblocks node client, deterministic user-ID-to-color mapping, and private `getOrCreateRoom` helper.
 - Added `POST /api/liveblocks-auth`, which reads Liveblocks' `{ room }` body, requires Clerk auth, checks project access with the existing owner/collaborator helper, ensures the project room exists, and returns a room-scoped Liveblocks session token with user metadata.
 - Verified Liveblocks setup with `npm.cmd run lint`, `npm.cmd run build`, and a signed-out smoke check to `POST /api/liveblocks-auth`, which returned `401` JSON.

@@ -1,5 +1,6 @@
 "use client";
 
+import { UserButton, useAuth } from "@clerk/nextjs";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
 import {
     ClientSideSuspense,
@@ -9,7 +10,10 @@ import {
     useCanUndo,
     useHistory,
     useRedo,
+    useOthersMapped,
     useUndo,
+    useUpdateMyPresence,
+    shallow,
 } from "@liveblocks/react/suspense";
 import {
     Background,
@@ -24,7 +28,9 @@ import {
     Position,
     ReactFlow,
     ReactFlowProvider,
+    ViewportPortal,
     useReactFlow,
+    useViewport,
     type DefaultEdgeOptions,
     type EdgeProps,
     type EdgeTypes,
@@ -38,6 +44,7 @@ import {
     Diamond,
     Hexagon,
     Maximize2,
+    MousePointer2,
     Pill,
     RectangleHorizontal,
     Redo2,
@@ -54,6 +61,7 @@ import {
     useRef,
     useState,
     type ChangeEvent,
+    type ComponentProps,
     type CSSProperties,
     type DragEvent,
     type ErrorInfo,
@@ -67,9 +75,22 @@ import {
     cloneCanvasTemplate,
     type CanvasTemplate,
 } from "@/components/editor/starter-templates";
+import {
+    editorUserButtonAppearance,
+    editorUserProfileAppearance,
+} from "@/components/editor/clerk-user-button-appearance";
+import { useCanvasSaveStatus } from "@/components/editor/canvas-save-status-context";
 import { useStarterTemplates } from "@/components/editor/starter-templates-context";
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarGroup,
+    AvatarGroupCount,
+    AvatarImage,
+} from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useCanvasAutosave } from "@/hooks/use-canvas-autosave";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import {
@@ -85,6 +106,7 @@ import {
     type CanvasNodeColor,
     type CanvasNodeShape,
     type CanvasNodeSize,
+    type CanvasSnapshot,
 } from "@/types/canvas";
 
 interface EditorCanvasProps {
@@ -119,10 +141,33 @@ interface ShapeTool {
   shape: CanvasNodeShape;
 }
 
+interface CurrentUserPresenceProps {
+  currentUserId: string | null | undefined;
+}
+
+interface PresenceAvatarParticipantData {
+  avatarUrl: string | null;
+  cursorColor: string;
+  displayName: string;
+  userId: string;
+}
+
+interface PresenceCursorParticipantData {
+  cursor: Liveblocks["Presence"]["cursor"];
+  cursorColor: string;
+  displayName: string;
+  userId: string;
+}
+
+interface PresenceCursorParticipant extends PresenceCursorParticipantData {
+  connectionId: number;
+}
+
 const initialNodes: CanvasNode[] = [];
 const initialEdges: CanvasEdge[] = [];
 const edgeInteractionWidth = 24;
 const edgeLabelHint = "Label";
+const maxVisibleCollaboratorAvatars = 5;
 const shapeDragDataType = "application/vnd.vision-ai.shape+json";
 const viewportAnimationDuration = 150;
 const minimumNodeSize = {
@@ -139,6 +184,16 @@ const nodeResizeLineStyle = {
   borderColor: "var(--accent-primary)",
   opacity: 0.36,
 } satisfies CSSProperties;
+const canvasUserButtonAppearance = {
+  ...editorUserButtonAppearance,
+  elements: {
+    ...editorUserButtonAppearance?.elements,
+    userButtonAvatarBox: {
+      height: "2rem",
+      width: "2rem",
+    },
+  },
+} satisfies ComponentProps<typeof UserButton>["appearance"];
 
 const shapeTools = [
   { Icon: RectangleHorizontal, label: "Rectangle", shape: "rectangle" },
@@ -292,11 +347,11 @@ export function EditorCanvas({ roomId }: EditorCanvasProps) {
       <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
         <RoomProvider
           id={roomId}
-          initialPresence={{ cursor: null, isThinking: false }}
+          initialPresence={{ cursor: null, thinking: false }}
         >
           <CanvasErrorBoundary key={roomId}>
             <ClientSideSuspense fallback={<CanvasLoadingState />}>
-              {() => <LiveblocksFlowCanvas />}
+              {() => <LiveblocksFlowCanvas projectId={roomId} />}
             </ClientSideSuspense>
           </CanvasErrorBoundary>
         </RoomProvider>
@@ -330,15 +385,19 @@ class CanvasErrorBoundary extends Component<
   }
 }
 
-function LiveblocksFlowCanvas() {
+interface LiveblocksFlowCanvasProps {
+  projectId: string;
+}
+
+function LiveblocksFlowCanvas({ projectId }: LiveblocksFlowCanvasProps) {
   return (
     <ReactFlowProvider>
-      <LiveblocksFlowCanvasContent />
+      <LiveblocksFlowCanvasContent projectId={projectId} />
     </ReactFlowProvider>
   );
 }
 
-function LiveblocksFlowCanvasContent() {
+function LiveblocksFlowCanvasContent({ projectId }: LiveblocksFlowCanvasProps) {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, onDelete } =
     useLiveblocksFlow<CanvasNode, CanvasEdge>({
       edges: {
@@ -351,6 +410,9 @@ function LiveblocksFlowCanvasContent() {
     });
   const reactFlowInstance = useReactFlow<CanvasNode, CanvasEdge>();
   const { screenToFlowPosition } = reactFlowInstance;
+  const { userId: currentUserId } = useAuth();
+  const { manualSaveRequestId, setSaveStatus } = useCanvasSaveStatus();
+  const updateMyPresence = useUpdateMyPresence();
   const nodeCounterRef = useRef(0);
   const [shapeDragPreview, setShapeDragPreview] =
     useState<ShapeDragPreviewState | null>(null);
@@ -365,6 +427,22 @@ function LiveblocksFlowCanvasContent() {
     () => edges.map(toRenderableCanvasEdge),
     [edges],
   );
+
+  const handleCanvasMouseMove = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      updateMyPresence({
+        cursor: screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        }),
+      });
+    },
+    [screenToFlowPosition, updateMyPresence],
+  );
+
+  const handleCanvasMouseLeave = useCallback(() => {
+    updateMyPresence({ cursor: null });
+  }, [updateMyPresence]);
 
   const handleZoomOut = useCallback(() => {
     void reactFlowInstance.zoomOut({ duration: viewportAnimationDuration });
@@ -441,6 +519,46 @@ function LiveblocksFlowCanvasContent() {
       onNodesChange,
       reactFlowInstance,
     ],
+  );
+
+  const handleSavedCanvasLoad = useCallback(
+    (snapshot: CanvasSnapshot) => {
+      history.pause();
+
+      try {
+        if (snapshot.nodes.length > 0) {
+          onNodesChange(
+            snapshot.nodes.map((node) => ({
+              item: node,
+              type: "add" as const,
+            })),
+          );
+        }
+
+        if (snapshot.edges.length > 0) {
+          onEdgesChange(
+            snapshot.edges.map((edge) => ({
+              item: edge,
+              type: "add" as const,
+            })),
+          );
+        }
+      } finally {
+        history.resume();
+      }
+
+      if (snapshot.nodes.length > 0) {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            void reactFlowInstance.fitView({
+              duration: viewportAnimationDuration,
+              padding: 0.18,
+            });
+          });
+        });
+      }
+    },
+    [history, onEdgesChange, onNodesChange, reactFlowInstance],
   );
 
   const updateShapeDragPreviewPosition = useCallback(
@@ -528,6 +646,18 @@ function LiveblocksFlowCanvasContent() {
     onUndo: handleUndo,
   });
 
+  const canvasSaveStatus = useCanvasAutosave({
+    edges,
+    manualSaveRequestId,
+    nodes,
+    onLoadCanvas: handleSavedCanvasLoad,
+    projectId,
+  });
+
+  useEffect(() => {
+    setSaveStatus(canvasSaveStatus);
+  }, [canvasSaveStatus, setSaveStatus]);
+
   return (
     <div
       className="relative flex min-h-0 flex-1 bg-base"
@@ -547,6 +677,8 @@ function LiveblocksFlowCanvasContent() {
         onConnect={onConnect}
         onDelete={onDelete}
         onEdgesChange={onEdgesChange}
+        onMouseLeave={handleCanvasMouseLeave}
+        onMouseMove={handleCanvasMouseMove}
         onNodesChange={onNodesChange}
       >
         <Background
@@ -555,7 +687,9 @@ function LiveblocksFlowCanvasContent() {
           size={1.25}
           variant={BackgroundVariant.Dots}
         />
+        <LiveCursors currentUserId={currentUserId} />
       </ReactFlow>
+      <PresenceAvatarGroup currentUserId={currentUserId} />
       <CanvasControlBar
         canRedo={canRedo}
         canUndo={canUndo}
@@ -576,6 +710,169 @@ function LiveblocksFlowCanvasContent() {
         open={isStarterTemplatesOpen}
       />
       <ShapeDragPreview preview={shapeDragPreview} />
+    </div>
+  );
+}
+
+function PresenceAvatarGroup({ currentUserId }: CurrentUserPresenceProps) {
+  const collaboratorEntries = useOthersMapped(
+    (other) => ({
+      avatarUrl: other.info.avatarUrl,
+      cursorColor: other.info.cursorColor,
+      displayName: other.info.displayName,
+      userId: other.id,
+    }),
+    shallow,
+  );
+  const collaborators = useMemo(
+    () =>
+      filterCurrentUserParticipants<PresenceAvatarParticipantData>(
+        collaboratorEntries,
+        currentUserId,
+      ),
+    [collaboratorEntries, currentUserId],
+  );
+  const visibleCollaborators = collaborators.slice(
+    0,
+    maxVisibleCollaboratorAvatars,
+  );
+  const overflowCount =
+    collaborators.length - maxVisibleCollaboratorAvatars;
+  const hasCollaborators = collaborators.length > 0;
+
+  return (
+    <div
+      aria-label="Room participants"
+      className="pointer-events-auto absolute right-4 top-4 z-30 flex h-10 items-center gap-2 rounded-full border border-surface-border bg-surface/95 px-2 shadow-2xl backdrop-blur"
+    >
+      {hasCollaborators ? (
+        <AvatarGroup
+          aria-label="Active collaborators"
+          className="-space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-[var(--bg-base)]"
+        >
+          {visibleCollaborators.map((collaborator, index) => (
+            <Avatar
+              className="border border-surface-border bg-elevated"
+              key={collaborator.connectionId}
+              style={{
+                zIndex: visibleCollaborators.length - index,
+              }}
+            >
+              {collaborator.avatarUrl ? (
+                <AvatarImage
+                  alt=""
+                  src={collaborator.avatarUrl}
+                />
+              ) : null}
+              <AvatarFallback
+                className="text-xs font-semibold"
+                style={{
+                  backgroundColor: collaborator.cursorColor,
+                  color: "var(--bg-base)",
+                }}
+              >
+                {getInitials(collaborator.displayName)}
+              </AvatarFallback>
+            </Avatar>
+          ))}
+          {overflowCount > 0 ? (
+            <AvatarGroupCount className="border border-surface-border bg-elevated text-xs font-semibold text-copy-secondary ring-2 ring-[var(--bg-base)]">
+              +{overflowCount}
+            </AvatarGroupCount>
+          ) : null}
+        </AvatarGroup>
+      ) : null}
+      {hasCollaborators ? (
+        <div className="h-5 w-px bg-surface-border" />
+      ) : null}
+      <UserButton
+        appearance={canvasUserButtonAppearance}
+        userProfileProps={{ appearance: editorUserProfileAppearance }}
+      />
+    </div>
+  );
+}
+
+function LiveCursors({ currentUserId }: CurrentUserPresenceProps) {
+  const { zoom } = useViewport();
+  const cursorEntries = useOthersMapped(
+    (other) => ({
+      cursor: other.presence.cursor,
+      cursorColor: other.info.cursorColor,
+      displayName: other.info.displayName,
+      userId: other.id,
+    }),
+    shallow,
+  );
+  const cursors = useMemo(
+    () =>
+      filterCurrentUserParticipants<PresenceCursorParticipantData>(
+        cursorEntries,
+        currentUserId,
+      ),
+    [cursorEntries, currentUserId],
+  );
+  const cursorScale = zoom > 0 ? 1 / zoom : 1;
+
+  return (
+    <ViewportPortal>
+      <div className="pointer-events-none absolute left-0 top-0 z-30">
+        {cursors.map((participant) =>
+          participant.cursor ? (
+            <LiveCursor
+              key={participant.connectionId}
+              participant={participant}
+              scale={cursorScale}
+            />
+          ) : null,
+        )}
+      </div>
+    </ViewportPortal>
+  );
+}
+
+interface LiveCursorProps {
+  participant: PresenceCursorParticipant;
+  scale: number;
+}
+
+function LiveCursor({ participant, scale }: LiveCursorProps) {
+  if (!participant.cursor) {
+    return null;
+  }
+
+  return (
+    <div
+      className="absolute left-0 top-0"
+      style={{
+        transform: `translate3d(${participant.cursor.x}px, ${participant.cursor.y}px, 0)`,
+      }}
+    >
+      <div
+        className="flex origin-top-left items-start gap-1"
+        style={{
+          transform: `scale(${scale})`,
+        }}
+      >
+        <MousePointer2
+          aria-hidden="true"
+          className="size-5 shrink-0 drop-shadow"
+          style={{
+            color: participant.cursorColor,
+            fill: participant.cursorColor,
+            stroke: participant.cursorColor,
+          }}
+        />
+        <span
+          className="mt-4 max-w-40 truncate rounded-full px-2 py-1 text-xs font-semibold leading-none shadow-xl ring-1 ring-[var(--bg-base)]"
+          style={{
+            backgroundColor: participant.cursorColor,
+            color: "var(--bg-base)",
+          }}
+        >
+          {participant.displayName}
+        </span>
+      </div>
     </div>
   );
 }
@@ -1226,6 +1523,39 @@ function CanvasNodeHandle({ isConnectable, position }: CanvasNodeHandleProps) {
       type="source"
     />
   );
+}
+
+function filterCurrentUserParticipants<T extends { userId: string }>(
+  entries: ReadonlyArray<readonly [number, T]>,
+  currentUserId: string | null | undefined,
+) {
+  return entries.reduce<Array<T & { connectionId: number }>>(
+    (participants, [connectionId, participant]) => {
+      if (currentUserId && participant.userId === currentUserId) {
+        return participants;
+      }
+
+      participants.push({
+        ...participant,
+        connectionId,
+      });
+
+      return participants;
+    },
+    [],
+  );
+}
+
+function getInitials(displayName: string) {
+  const initials = displayName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+
+  return initials || "U";
 }
 
 function stopCanvasInteraction(event: { stopPropagation: () => void }) {
