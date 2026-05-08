@@ -51,7 +51,14 @@
 
 - Input: user prompt, project context, and current canvas state.
 - Execution: durable background task via Trigger.dev.
-- Output: structured node and edge updates written into the shared Liveblocks room.
+- Output: structured node and edge updates, AI presence, and AI status messages written into the shared Liveblocks room.
+- AI status messages are published to the room's Liveblocks feed named `ai-status-feed` so connected collaborators see the same run progress without introducing a second realtime state system.
+
+### Sidebar Chat
+
+- AI sidebar room chat is published to a separate room-scoped Liveblocks feed named `ai-chat`.
+- `ai-chat` stores validated collaborative chat messages only: sender, role, content, and timestamp.
+- Chat messages do not trigger AI tasks and must not be mixed with `ai-status-feed` progress messages.
 
 ### Spec Generation
 

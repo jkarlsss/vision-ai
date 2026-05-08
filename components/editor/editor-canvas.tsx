@@ -4,8 +4,6 @@ import { UserButton, useAuth } from "@clerk/nextjs";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
 import {
     ClientSideSuspense,
-    LiveblocksProvider,
-    RoomProvider,
     useCanRedo,
     useCanUndo,
     useHistory,
@@ -38,11 +36,15 @@ import {
     type NodeTypes,
 } from "@xyflow/react";
 import {
+    Bot,
+    CheckCircle2,
     CircleAlert,
     Circle as CircleIcon,
+    CircleX,
     Cylinder,
     Diamond,
     Hexagon,
+    LoaderCircle,
     Maximize2,
     MousePointer2,
     Pill,
@@ -92,6 +94,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useCanvasAutosave } from "@/hooks/use-canvas-autosave";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useRetriableFeedMessages } from "@/hooks/use-liveblocks-feed-messages";
 import { cn } from "@/lib/utils";
 import {
     CANVAS_EDGE_TYPE,
@@ -108,6 +111,11 @@ import {
     type CanvasNodeSize,
     type CanvasSnapshot,
 } from "@/types/canvas";
+import {
+    AI_STATUS_FEED_ID,
+    parseAiStatusFeedPayload,
+    type AiStatusFeedPayload,
+} from "@/types/tasks";
 
 interface EditorCanvasProps {
   roomId: string;
@@ -149,6 +157,7 @@ interface PresenceAvatarParticipantData {
   avatarUrl: string | null;
   cursorColor: string;
   displayName: string;
+  thinking: boolean;
   userId: string;
 }
 
@@ -156,6 +165,7 @@ interface PresenceCursorParticipantData {
   cursor: Liveblocks["Presence"]["cursor"];
   cursorColor: string;
   displayName: string;
+  thinking: boolean;
   userId: string;
 }
 
@@ -344,18 +354,11 @@ export function EditorCanvas({ roomId }: EditorCanvasProps) {
       aria-label="Collaborative canvas"
       className="flex min-h-0 flex-1 bg-base"
     >
-      <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
-        <RoomProvider
-          id={roomId}
-          initialPresence={{ cursor: null, thinking: false }}
-        >
-          <CanvasErrorBoundary key={roomId}>
-            <ClientSideSuspense fallback={<CanvasLoadingState />}>
-              {() => <LiveblocksFlowCanvas projectId={roomId} />}
-            </ClientSideSuspense>
-          </CanvasErrorBoundary>
-        </RoomProvider>
-      </LiveblocksProvider>
+      <CanvasErrorBoundary key={roomId}>
+        <ClientSideSuspense fallback={<CanvasLoadingState />}>
+          {() => <LiveblocksFlowCanvas projectId={roomId} />}
+        </ClientSideSuspense>
+      </CanvasErrorBoundary>
     </section>
   );
 }
@@ -693,6 +696,7 @@ function LiveblocksFlowCanvasContent({ projectId }: LiveblocksFlowCanvasProps) {
         />
         <LiveCursors currentUserId={currentUserId} />
       </ReactFlow>
+      <AiStatusFeed />
       <PresenceAvatarGroup currentUserId={currentUserId} />
       <CanvasControlBar
         canRedo={canRedo}
@@ -718,12 +722,148 @@ function LiveblocksFlowCanvasContent({ projectId }: LiveblocksFlowCanvasProps) {
   );
 }
 
+function AiStatusFeed() {
+  const feedMessagesResult = useRetriableFeedMessages(AI_STATUS_FEED_ID, {
+    limit: 1,
+  });
+  const latestMessage = useMemo(
+    () =>
+      feedMessagesResult.isLoading || feedMessagesResult.error
+        ? null
+        : getLatestAiStatusFeedMessage(feedMessagesResult.messages),
+    [
+      feedMessagesResult.error,
+      feedMessagesResult.isLoading,
+      feedMessagesResult.messages,
+    ],
+  );
+
+  if (!latestMessage) {
+    return null;
+  }
+
+  return (
+    <div
+      aria-live="polite"
+      className="pointer-events-none absolute left-1/2 top-4 z-30 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 flex-col gap-2"
+    >
+      <AiStatusFeedItem
+        key={latestMessage.id}
+        message={latestMessage.payload}
+      />
+    </div>
+  );
+}
+
+interface AiStatusFeedItemProps {
+  message: AiStatusFeedPayload;
+}
+
+function AiStatusFeedItem({ message }: AiStatusFeedItemProps) {
+  const { Icon, className } = getAiStatusDisplay(message);
+
+  return (
+    <div className="flex min-w-0 items-start gap-2 rounded-2xl border border-surface-border bg-surface/95 px-3 py-2 text-sm shadow-2xl backdrop-blur">
+      <Icon
+        aria-hidden="true"
+        className={cn("mt-0.5 size-4 shrink-0", className)}
+      />
+      <p className="min-w-0 break-words leading-5 text-copy-secondary">
+        {getAiStatusText(message)}
+      </p>
+    </div>
+  );
+}
+
+function getAiStatusDisplay(message: AiStatusFeedPayload) {
+  if (message.level === "success") {
+    return { Icon: CheckCircle2, className: "text-state-success" };
+  }
+
+  if (message.level === "error") {
+    return { Icon: CircleX, className: "text-state-error" };
+  }
+
+  if (message.phase === "start") {
+    return { Icon: Bot, className: "text-ai-text" };
+  }
+
+  return {
+    Icon: LoaderCircle,
+    className: "animate-spin text-ai-text",
+  };
+}
+
+function getAiStatusFeedMessageTimestamp(message: { createdAt: number }) {
+  return Number.isFinite(message.createdAt) ? message.createdAt : 0;
+}
+
+function getLatestAiStatusFeedMessage(
+  messages: ReadonlyArray<{
+    createdAt: number;
+    data: unknown;
+    id: string;
+  }>,
+) {
+  const latestMessage = messages.reduce<
+    | {
+        createdAt: number;
+        data: unknown;
+        id: string;
+      }
+    | null
+  >((latest, message) => {
+    if (!latest) {
+      return message;
+    }
+
+    return getAiStatusFeedMessageTimestamp(message) >
+      getAiStatusFeedMessageTimestamp(latest)
+      ? message
+      : latest;
+  }, null);
+
+  if (!latestMessage) {
+    return null;
+  }
+
+  const payload = parseAiStatusFeedPayload(latestMessage.data);
+
+  return payload
+    ? {
+        id: latestMessage.id,
+        payload,
+      }
+    : null;
+}
+
+function getAiStatusText(message: AiStatusFeedPayload) {
+  if (message.text) {
+    return message.text;
+  }
+
+  if (message.phase === "complete") {
+    return "Ghost AI finished.";
+  }
+
+  if (message.phase === "error") {
+    return "Ghost AI needs attention.";
+  }
+
+  if (message.phase === "start") {
+    return "Ghost AI started working.";
+  }
+
+  return "Ghost AI is working.";
+}
+
 function PresenceAvatarGroup({ currentUserId }: CurrentUserPresenceProps) {
   const collaboratorEntries = useOthersMapped(
     (other) => ({
       avatarUrl: other.info.avatarUrl,
       cursorColor: other.info.cursorColor,
       displayName: other.info.displayName,
+      thinking: Boolean(other.presence.thinking),
       userId: other.id,
     }),
     shallow,
@@ -756,7 +896,11 @@ function PresenceAvatarGroup({ currentUserId }: CurrentUserPresenceProps) {
         >
           {visibleCollaborators.map((collaborator, index) => (
             <Avatar
-              className="border border-surface-border bg-elevated"
+              className={cn(
+                "border border-surface-border bg-elevated",
+                collaborator.thinking &&
+                  "shadow-[0_0_0_3px_var(--accent-primary-dim)]",
+              )}
               key={collaborator.connectionId}
               style={{
                 zIndex: visibleCollaborators.length - index,
@@ -804,6 +948,7 @@ function LiveCursors({ currentUserId }: CurrentUserPresenceProps) {
       cursor: other.presence.cursor,
       cursorColor: other.info.cursorColor,
       displayName: other.info.displayName,
+      thinking: Boolean(other.presence.thinking),
       userId: other.id,
     }),
     shallow,
@@ -868,13 +1013,21 @@ function LiveCursor({ participant, scale }: LiveCursorProps) {
           }}
         />
         <span
-          className="mt-4 max-w-40 truncate rounded-full px-2 py-1 text-xs font-semibold leading-none shadow-xl ring-1 ring-[var(--bg-base)]"
+          aria-label={
+            participant.thinking
+              ? `${participant.displayName} is thinking`
+              : participant.displayName
+          }
+          className="mt-4 flex max-w-40 items-center gap-1 truncate rounded-full px-2 py-1 text-xs font-semibold leading-none shadow-xl ring-1 ring-[var(--bg-base)]"
           style={{
             backgroundColor: participant.cursorColor,
             color: "var(--bg-base)",
           }}
         >
-          {participant.displayName}
+          <span className="min-w-0 truncate">{participant.displayName}</span>
+          {participant.thinking ? (
+            <LoaderCircle aria-hidden="true" className="size-3 animate-spin" />
+          ) : null}
         </span>
       </div>
     </div>

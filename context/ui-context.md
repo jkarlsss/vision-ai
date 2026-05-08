@@ -92,6 +92,14 @@ Small white circular handles, hidden by default, revealed on node hover. Appear 
 
 A compact pill-shaped control bar sits at the bottom-left of the canvas, aligned to the same bottom offset as the center shape panel. It uses icon-only buttons for zoom out, fit view, zoom in, undo, and redo, with a thin divider between zoom and history controls. Zoom actions animate the React Flow viewport briefly. Undo and redo use Liveblocks history and render disabled states dimmed when unavailable. The React Flow MiniMap is not shown.
 
+### AI Status Feed
+
+AI design and spec runs surface through the room's Liveblocks feed named `ai-status-feed`. The canvas and AI sidebar show only the most recent validated message using the existing dark floating overlay treatment, short status copy, and state colors for processing, success, and error messages. It should not create a separate realtime state system outside the active room.
+
+### AI Sidebar Chat
+
+The AI sidebar chat uses the room-scoped Liveblocks feed named `ai-chat`. It renders validated messages in chronological order with sender, timestamp, and content. User-authored messages use the existing right-aligned cyan-accent bubble treatment for the current user, while collaborator messages use the elevated dark bubble treatment. Sending failures show a small error message above the composer controls.
+
 ### Canvas Background
 
 React Flow `<Background>` component. Canvas sits on the base background color.
