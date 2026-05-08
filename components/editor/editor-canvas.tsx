@@ -526,6 +526,10 @@ function LiveblocksFlowCanvasContent({ projectId }: LiveblocksFlowCanvasProps) {
       history.pause();
 
       try {
+        if (nodes.length > 0 || edges.length > 0) {
+          onDelete({ edges, nodes });
+        }
+
         if (snapshot.nodes.length > 0) {
           onNodesChange(
             snapshot.nodes.map((node) => ({
@@ -558,7 +562,7 @@ function LiveblocksFlowCanvasContent({ projectId }: LiveblocksFlowCanvasProps) {
         });
       }
     },
-    [history, onEdgesChange, onNodesChange, reactFlowInstance],
+    [history, onEdgesChange, onNodesChange, reactFlowInstance, edges, nodes, onDelete],
   );
 
   const updateShapeDragPreviewPosition = useCallback(

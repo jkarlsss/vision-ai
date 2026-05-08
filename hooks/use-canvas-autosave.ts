@@ -74,19 +74,7 @@ export function useCanvasAutosave({
     activeSaveAbortControllerRef.current?.abort();
     activeSaveAbortControllerRef.current = null;
 
-    if (hasCurrentCanvasContent(latestCanvasRef.current)) {
-      lastSavedSnapshotRef.current = serializeCanvasSnapshot(
-        createCanvasSnapshot(
-          latestCanvasRef.current.nodes,
-          latestCanvasRef.current.edges,
-        ),
-      );
-      queueMicrotask(() => {
-        setInitialLoadState({ isCompleted: true, projectId });
-        setSaveStatus("saved");
-      });
-      return;
-    }
+    const abortController = new AbortController();
 
     const abortController = new AbortController();
 
@@ -151,7 +139,11 @@ export function useCanvasAutosave({
       setSaveStatus("saving");
 
       try {
-        await requestSaveCanvas(projectId, nextSnapshot, abortController.signal);
+        await requestSaveCanvas(
+          projectId,
+          nextSnapshot,
+          abortController.signal,
+        );
 
         if (
           !abortController.signal.aborted &&
@@ -190,10 +182,19 @@ export function useCanvasAutosave({
     return () => window.clearTimeout(timeoutId);
   }, [canSave, saveSnapshot, serializedSnapshot, snapshot]);
 
+  const prevManualSaveRequestIdRef = useRef(manualSaveRequestId);
+
   useEffect(() => {
-    if (manualSaveRequestId === 0 || !canSave) {
-      return;
-    }
+    if (
+      manualSaveRequestId === 0 ||
+      !canSave ||
+      prevManualSaveRequestIdRef.current === manualSaveRequestId
+    ) {
+      prevManualSaveRequestIdRef.current = manualSaveRequestId;
+       return;
+     }
+ 
+    prevManualSaveRequestIdRef.current = manualSaveRequestId;
 
     const timeoutId = window.setTimeout(() => {
       void saveSnapshot(snapshot, serializedSnapshot);
