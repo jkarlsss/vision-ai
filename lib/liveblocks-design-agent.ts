@@ -2,6 +2,7 @@ import "server-only";
 
 import { mutateFlow, type MutableFlow } from "@liveblocks/react-flow/node";
 
+import { ensureLiveblocksRoom, getLiveblocksClient } from "@/lib/liveblocks";
 import { ensureAiStatusFeed } from "@/lib/liveblocks-ai-status";
 import {
   CANVAS_EDGE_TYPE,
@@ -25,10 +26,6 @@ import type {
   ResizeNodeDesignAction,
   UpdateNodeDataDesignAction,
 } from "@/types/design-agent";
-import {
-  ensureLiveblocksRoom,
-  getLiveblocksClient,
-} from "@/lib/liveblocks";
 
 interface UpdateAiPresenceOptions {
   cursor: DesignAgentPosition | null;
@@ -51,7 +48,7 @@ interface NodeBounds {
 }
 
 const aiAgentUserId = "vision-ai-design-agent";
-const aiAgentName = "Ghost AI";
+const aiAgentName = "Vision AI";
 const aiAgentColor = "#8b82ff";
 const defaultPresenceTtlSeconds = 45;
 const clearPresenceTtlSeconds = 2;
@@ -474,8 +471,14 @@ function getNodeBounds(node: CanvasNode): NodeBounds {
   const fallbackSize = NODE_DEFAULT_SIZES[node.data.shape];
 
   return {
-    height: node.height ?? getNumericStyleValue(node.style?.height) ?? fallbackSize.height,
-    width: node.width ?? getNumericStyleValue(node.style?.width) ?? fallbackSize.width,
+    height:
+      node.height ??
+      getNumericStyleValue(node.style?.height) ??
+      fallbackSize.height,
+    width:
+      node.width ??
+      getNumericStyleValue(node.style?.width) ??
+      fallbackSize.width,
     x: node.position.x,
     y: node.position.y,
   };

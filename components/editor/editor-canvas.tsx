@@ -1,95 +1,95 @@
 "use client";
 
-import { UserButton, useAuth } from "@clerk/nextjs";
+import { useAuth, UserButton } from "@clerk/nextjs";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
 import {
-    ClientSideSuspense,
-    useCanRedo,
-    useCanUndo,
-    useHistory,
-    useRedo,
-    useOthersMapped,
-    useUndo,
-    useUpdateMyPresence,
-    shallow,
+  ClientSideSuspense,
+  shallow,
+  useCanRedo,
+  useCanUndo,
+  useHistory,
+  useOthersMapped,
+  useRedo,
+  useUndo,
+  useUpdateMyPresence,
 } from "@liveblocks/react/suspense";
 import {
-    Background,
-    BackgroundVariant,
-    ConnectionMode,
-    EdgeLabelRenderer,
-    getSmoothStepPath,
-    Handle,
-    MarkerType,
-    NodeResizer,
-    NodeToolbar,
-    Position,
-    ReactFlow,
-    ReactFlowProvider,
-    ViewportPortal,
-    useReactFlow,
-    useViewport,
-    type DefaultEdgeOptions,
-    type EdgeProps,
-    type EdgeTypes,
-    type NodeProps,
-    type NodeTypes,
+  Background,
+  BackgroundVariant,
+  ConnectionMode,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+  Handle,
+  MarkerType,
+  NodeResizer,
+  NodeToolbar,
+  Position,
+  ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
+  useViewport,
+  ViewportPortal,
+  type DefaultEdgeOptions,
+  type EdgeProps,
+  type EdgeTypes,
+  type NodeProps,
+  type NodeTypes,
 } from "@xyflow/react";
 import {
-    Bot,
-    CheckCircle2,
-    CircleAlert,
-    Circle as CircleIcon,
-    CircleX,
-    Cylinder,
-    Diamond,
-    Hexagon,
-    LoaderCircle,
-    Maximize2,
-    MousePointer2,
-    Pill,
-    RectangleHorizontal,
-    Redo2,
-    Undo2,
-    ZoomIn,
-    ZoomOut,
-    type LucideIcon,
+  Bot,
+  CheckCircle2,
+  CircleAlert,
+  Circle as CircleIcon,
+  CircleX,
+  Cylinder,
+  Diamond,
+  Hexagon,
+  LoaderCircle,
+  Maximize2,
+  MousePointer2,
+  Pill,
+  RectangleHorizontal,
+  Redo2,
+  Undo2,
+  ZoomIn,
+  ZoomOut,
+  type LucideIcon,
 } from "lucide-react";
 import {
-    Component,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    type ChangeEvent,
-    type ComponentProps,
-    type CSSProperties,
-    type DragEvent,
-    type ErrorInfo,
-    type KeyboardEvent,
-    type MouseEvent,
-    type ReactNode,
-    type RefObject,
+  Component,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ComponentProps,
+  type CSSProperties,
+  type DragEvent,
+  type ErrorInfo,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject,
 } from "react";
 
-import {
-    cloneCanvasTemplate,
-    type CanvasTemplate,
-} from "@/components/editor/starter-templates";
-import {
-    editorUserButtonAppearance,
-    editorUserProfileAppearance,
-} from "@/components/editor/clerk-user-button-appearance";
 import { useCanvasSaveStatus } from "@/components/editor/canvas-save-status-context";
+import {
+  editorUserButtonAppearance,
+  editorUserProfileAppearance,
+} from "@/components/editor/clerk-user-button-appearance";
+import {
+  cloneCanvasTemplate,
+  type CanvasTemplate,
+} from "@/components/editor/starter-templates";
 import { useStarterTemplates } from "@/components/editor/starter-templates-context";
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
 import {
-    Avatar,
-    AvatarFallback,
-    AvatarGroup,
-    AvatarGroupCount,
-    AvatarImage,
+  Avatar,
+  AvatarFallback,
+  AvatarGroup,
+  AvatarGroupCount,
+  AvatarImage,
 } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useCanvasAutosave } from "@/hooks/use-canvas-autosave";
@@ -97,24 +97,24 @@ import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useRetriableFeedMessages } from "@/hooks/use-liveblocks-feed-messages";
 import { cn } from "@/lib/utils";
 import {
-    CANVAS_EDGE_TYPE,
-    CANVAS_NODE_TYPE,
-    DEFAULT_NODE_COLOR,
-    isCanvasNodeShape,
-    NODE_COLORS,
-    NODE_DEFAULT_SIZES,
-    type CanvasEdge,
-    type CanvasEdgeData,
-    type CanvasNode,
-    type CanvasNodeColor,
-    type CanvasNodeShape,
-    type CanvasNodeSize,
-    type CanvasSnapshot,
+  CANVAS_EDGE_TYPE,
+  CANVAS_NODE_TYPE,
+  DEFAULT_NODE_COLOR,
+  isCanvasNodeShape,
+  NODE_COLORS,
+  NODE_DEFAULT_SIZES,
+  type CanvasEdge,
+  type CanvasEdgeData,
+  type CanvasNode,
+  type CanvasNodeColor,
+  type CanvasNodeShape,
+  type CanvasNodeSize,
+  type CanvasSnapshot,
 } from "@/types/canvas";
 import {
-    AI_STATUS_FEED_ID,
-    parseAiStatusFeedPayload,
-    type AiStatusFeedPayload,
+  AI_STATUS_FEED_ID,
+  parseAiStatusFeedPayload,
+  type AiStatusFeedPayload,
 } from "@/types/tasks";
 
 interface EditorCanvasProps {
@@ -565,7 +565,15 @@ function LiveblocksFlowCanvasContent({ projectId }: LiveblocksFlowCanvasProps) {
         });
       }
     },
-    [history, onEdgesChange, onNodesChange, reactFlowInstance, edges, nodes, onDelete],
+    [
+      history,
+      onEdgesChange,
+      onNodesChange,
+      reactFlowInstance,
+      edges,
+      nodes,
+      onDelete,
+    ],
   );
 
   const updateShapeDragPreviewPosition = useCallback(
@@ -805,14 +813,11 @@ function getLatestAiStatusFeedMessage(
     id: string;
   }>,
 ) {
-  const latestMessage = messages.reduce<
-    | {
-        createdAt: number;
-        data: unknown;
-        id: string;
-      }
-    | null
-  >((latest, message) => {
+  const latestMessage = messages.reduce<{
+    createdAt: number;
+    data: unknown;
+    id: string;
+  } | null>((latest, message) => {
     if (!latest) {
       return message;
     }
@@ -843,18 +848,18 @@ function getAiStatusText(message: AiStatusFeedPayload) {
   }
 
   if (message.phase === "complete") {
-    return "Ghost AI finished.";
+    return "Vision AI finished.";
   }
 
   if (message.phase === "error") {
-    return "Ghost AI needs attention.";
+    return "Vision AI needs attention.";
   }
 
   if (message.phase === "start") {
-    return "Ghost AI started working.";
+    return "Vision AI started working.";
   }
 
-  return "Ghost AI is working.";
+  return "Vision AI is working.";
 }
 
 function PresenceAvatarGroup({ currentUserId }: CurrentUserPresenceProps) {
@@ -880,8 +885,7 @@ function PresenceAvatarGroup({ currentUserId }: CurrentUserPresenceProps) {
     0,
     maxVisibleCollaboratorAvatars,
   );
-  const overflowCount =
-    collaborators.length - maxVisibleCollaboratorAvatars;
+  const overflowCount = collaborators.length - maxVisibleCollaboratorAvatars;
   const hasCollaborators = collaborators.length > 0;
 
   return (
@@ -907,10 +911,7 @@ function PresenceAvatarGroup({ currentUserId }: CurrentUserPresenceProps) {
               }}
             >
               {collaborator.avatarUrl ? (
-                <AvatarImage
-                  alt=""
-                  src={collaborator.avatarUrl}
-                />
+                <AvatarImage alt="" src={collaborator.avatarUrl} />
               ) : null}
               <AvatarFallback
                 className="text-xs font-semibold"
@@ -930,9 +931,7 @@ function PresenceAvatarGroup({ currentUserId }: CurrentUserPresenceProps) {
           ) : null}
         </AvatarGroup>
       ) : null}
-      {hasCollaborators ? (
-        <div className="h-5 w-px bg-surface-border" />
-      ) : null}
+      {hasCollaborators ? <div className="h-5 w-px bg-surface-border" /> : null}
       <UserButton
         appearance={canvasUserButtonAppearance}
         userProfileProps={{ appearance: editorUserProfileAppearance }}
@@ -1394,7 +1393,10 @@ function CanvasNodeRenderer({
         isConnectable={isConnectable}
         position={Position.Bottom}
       />
-      <CanvasNodeHandle isConnectable={isConnectable} position={Position.Left} />
+      <CanvasNodeHandle
+        isConnectable={isConnectable}
+        position={Position.Left}
+      />
     </div>
   );
 }

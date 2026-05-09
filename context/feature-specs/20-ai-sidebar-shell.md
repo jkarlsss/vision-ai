@@ -11,7 +11,7 @@ Don't forget to use skills if needed.
 
 2. Add the sidebar header.
    - title: `AI Workspace`
-   - subtitle: `Collaborate with Ghost AI`
+   - subtitle: `Collaborate with Vision AI`
    - small bot icon
    - close button aligned to the right
    - use `text-primary-text` for the title

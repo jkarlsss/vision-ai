@@ -1,7 +1,5 @@
 import "server-only";
 
-import { LiveblocksError } from "@liveblocks/node";
-
 import { getLiveblocksClient } from "@/lib/liveblocks";
 import { AI_CHAT_FEED_ID } from "@/types/tasks";
 
@@ -39,5 +37,15 @@ export async function ensureAiChatFeed(roomId: string) {
 }
 
 function isLiveblocksStatus(error: unknown, status: number) {
-  return error instanceof LiveblocksError && error.status === status;
+  return getLiveblocksErrorStatus(error) === status;
+}
+
+function getLiveblocksErrorStatus(error: unknown) {
+  if (typeof error !== "object" || error === null || !("status" in error)) {
+    return null;
+  }
+
+  const status = (error as { status?: unknown }).status;
+
+  return typeof status === "number" ? status : null;
 }

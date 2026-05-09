@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import { z } from "zod";
 
 import { appendAiStatusMessage } from "@/lib/liveblocks-ai-status";
+import { persistGeneratedSpec } from "@/lib/spec-persistence";
 import {
   GENERATE_SPEC_TASK_ID,
   generateSpecPayloadSchema,
@@ -61,7 +62,7 @@ export const generateSpec = task({
       });
       await safeAppendStatus(payload.roomId, {
         level: "info",
-        message: "Ghost AI started drafting the technical spec.",
+        message: "Vision AI started drafting the technical spec.",
         phase: "start",
         runId,
       });
@@ -74,23 +75,41 @@ export const generateSpec = task({
       });
       await safeAppendStatus(payload.roomId, {
         level: "info",
-        message: "Ghost AI is reading the canvas and chat context.",
+        message: "Vision AI is reading the canvas and chat context.",
         phase: "processing",
         runId,
       });
 
       const markdown = await generateMarkdownSpec(payload);
+      await safeSetRunMetadata({
+        message: "Saving Markdown technical spec.",
+        phase: "processing",
+        progress: 85,
+        status: "processing",
+      });
+      await safeAppendStatus(payload.roomId, {
+        level: "info",
+        message: "Vision AI is saving the technical spec.",
+        phase: "processing",
+        runId,
+      });
+
+      const savedSpec = await persistGeneratedSpec({
+        markdown,
+        projectId: payload.projectId,
+      });
 
       await safeSetRunMetadata({
         markdownLength: markdown.length,
         message: "Spec generation completed.",
         phase: "complete",
         progress: 100,
+        specId: savedSpec.specId,
         status: "completed",
       });
       await safeAppendStatus(payload.roomId, {
         level: "success",
-        message: "Ghost AI drafted the technical spec.",
+        message: "Vision AI drafted the technical spec.",
         phase: "complete",
         runId,
       });
@@ -100,6 +119,7 @@ export const generateSpec = task({
         projectId: payload.projectId,
         roomId: payload.roomId,
         runId,
+        specId: savedSpec.specId,
       });
 
       return markdown;
@@ -121,7 +141,7 @@ export const generateSpec = task({
       });
       await safeAppendStatus(payload.roomId, {
         level: "error",
-        message: "Ghost AI could not draft the technical spec.",
+        message: "Vision AI could not draft the technical spec.",
         phase: "error",
         runId,
       });
@@ -144,7 +164,7 @@ async function generateMarkdownSpec(payload: GenerateSpecPayload) {
     model: getGeminiModel(),
     prompt: buildSpecPrompt(payload),
     system:
-      "You are Ghost AI, a senior systems architect. Return only plain Markdown for a technical specification. Do not wrap the response in a code fence.",
+      "You are Vision AI, a senior systems architect. Return only plain Markdown for a technical specification. Do not wrap the response in a code fence.",
     temperature: 0.2,
   });
   const markdown = normalizeMarkdown(result.text);
@@ -245,7 +265,9 @@ function formatChatHistory(chatHistory: GenerateSpecPayload["chatHistory"]) {
 
 function normalizeMarkdown(text: string) {
   const trimmedText = text.trim();
-  const fenceMatch = trimmedText.match(/^```(?:markdown|md)?\s*([\s\S]*?)\s*```$/i);
+  const fenceMatch = trimmedText.match(
+    /^```(?:markdown|md)?\s*([\s\S]*?)\s*```$/i,
+  );
 
   return (fenceMatch?.[1] ?? trimmedText).trim();
 }
@@ -255,6 +277,7 @@ async function safeSetRunMetadata(options: {
   message: string;
   phase: SpecRunPhase;
   progress: number;
+  specId?: string;
   status: "starting" | "processing" | "completed" | "failed";
 }) {
   try {
@@ -267,6 +290,10 @@ async function safeSetRunMetadata(options: {
 
     if (typeof options.markdownLength === "number") {
       metadata.set("markdownLength", options.markdownLength);
+    }
+
+    if (typeof options.specId === "string") {
+      metadata.set("specId", options.specId);
     }
 
     await metadata.flush();
@@ -299,5 +326,7 @@ function getZodErrorMessage(error: z.ZodError) {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Unknown spec generation error.";
+  return error instanceof Error
+    ? error.message
+    : "Unknown spec generation error.";
 }
