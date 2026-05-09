@@ -91,6 +91,7 @@ async function triggerDesignAgent(
       DESIGN_AGENT_TASK_ID,
       payload,
       {
+        ttl: "1h",
         metadata: {
           projectId: designRequest.projectId,
           roomId: designRequest.roomId,

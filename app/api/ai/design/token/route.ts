@@ -57,7 +57,7 @@ export async function POST(request: Request) {
           tasks: [DESIGN_AGENT_TASK_ID],
         },
       },
-      expirationTime: "15m",
+      expirationTime: "1hr",
     });
 
     return Response.json({ token });
