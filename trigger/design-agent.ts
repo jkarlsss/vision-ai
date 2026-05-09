@@ -1,8 +1,9 @@
-import { logger, task } from "@trigger.dev/sdk";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { logger, task } from "@trigger.dev/sdk";
 import { generateText, tool } from "ai";
 import { z } from "zod";
 
+import { appendAiStatusMessage } from "@/lib/liveblocks-ai-status";
 import {
   applyDesignActions,
   clearDesignAgentPresence,
@@ -10,7 +11,6 @@ import {
   readDesignCanvasSnapshot,
   updateDesignAgentPresence,
 } from "@/lib/liveblocks-design-agent";
-import { appendAiStatusMessage } from "@/lib/liveblocks-ai-status";
 import {
   NODE_COLORS,
   NODE_DEFAULT_SIZES,
@@ -21,12 +21,12 @@ import {
   type CanvasSnapshot,
 } from "@/types/canvas";
 import {
+  DESIGN_AGENT_TASK_ID,
   type AddEdgeDesignAction,
   type AddNodeDesignAction,
-  DESIGN_AGENT_TASK_ID,
   type DesignAgentAction,
-  type DesignAgentPosition,
   type DesignAgentPayload,
+  type DesignAgentPosition,
   type DesignAgentResult,
 } from "@/types/design-agent";
 
@@ -165,7 +165,7 @@ export const designAgentTask = task({
       });
       await safeAppendStatus(payload.roomId, {
         level: "info",
-        message: "Ghost AI started reading the canvas.",
+        message: "Vision AI started reading the canvas.",
         phase: "start",
         runId,
       });
@@ -178,7 +178,7 @@ export const designAgentTask = task({
       });
       await safeAppendStatus(payload.roomId, {
         level: "info",
-        message: "Ghost AI is planning canvas changes.",
+        message: "Vision AI is planning canvas changes.",
         phase: "processing",
         runId,
       });
@@ -191,7 +191,7 @@ export const designAgentTask = task({
       });
       await safeAppendStatus(payload.roomId, {
         level: "info",
-        message: `Ghost AI is applying ${plan.actions.length} canvas action${
+        message: `Vision AI is applying ${plan.actions.length} canvas action${
           plan.actions.length === 1 ? "" : "s"
         }.`,
         phase: "processing",
@@ -204,10 +204,10 @@ export const designAgentTask = task({
       );
       const completeMessage =
         applyResult.skippedActionCount > 0
-          ? `Ghost AI updated the canvas and skipped ${applyResult.skippedActionCount} invalid action${
+          ? `Vision AI updated the canvas and skipped ${applyResult.skippedActionCount} invalid action${
               applyResult.skippedActionCount === 1 ? "" : "s"
             }.`
-          : "Ghost AI updated the canvas.";
+          : "Vision AI updated the canvas.";
 
       await safeAppendStatus(payload.roomId, {
         level: "success",
@@ -243,7 +243,7 @@ export const designAgentTask = task({
 
       await safeAppendStatus(payload.roomId, {
         level: "error",
-        message: "Ghost AI could not update the canvas.",
+        message: "Vision AI could not update the canvas.",
         phase: "error",
         runId,
       });
@@ -273,7 +273,7 @@ async function generateDesignPlan(
     model,
     prompt: buildDesignPlanPrompt(prompt, snapshot),
     system:
-      "You are Ghost AI, a collaborative systems architecture design agent. You must call the submitDesignPlan tool with canvas actions. Do not answer in prose.",
+      "You are Vision AI, a collaborative systems architecture design agent. You must call the submitDesignPlan tool with canvas actions. Do not answer in prose.",
     temperature: 0.2,
     toolChoice: { type: "tool", toolName: "submitDesignPlan" },
     tools: {
@@ -303,18 +303,23 @@ function normalizeGeneratedDesignPlan(
   plan: GeneratedDesignPlan,
   snapshot: CanvasSnapshot,
 ) {
-  const actions = plan.actions.reduce<DesignAgentAction[]>((validActions, action) => {
-    const normalizedAction = normalizeGeneratedDesignAction(action);
+  const actions = plan.actions.reduce<DesignAgentAction[]>(
+    (validActions, action) => {
+      const normalizedAction = normalizeGeneratedDesignAction(action);
 
-    if (normalizedAction) {
-      validActions.push(normalizedAction);
-    }
+      if (normalizedAction) {
+        validActions.push(normalizedAction);
+      }
 
-    return validActions;
-  }, []);
+      return validActions;
+    },
+    [],
+  );
 
   if (actions.length === 0) {
-    throw new Error("Gemini returned a design plan without valid canvas actions.");
+    throw new Error(
+      "Gemini returned a design plan without valid canvas actions.",
+    );
   }
 
   return {
@@ -382,11 +387,21 @@ function getTemplateStyleNodeShape(
     return "cylinder";
   }
 
-  if (hasAnyLabelPart(normalizedLabel, ["bus", "broker", "queue", "stream", "topic"])) {
+  if (
+    hasAnyLabelPart(normalizedLabel, [
+      "bus",
+      "broker",
+      "queue",
+      "stream",
+      "topic",
+    ])
+  ) {
     return "rectangle";
   }
 
-  if (hasAnyLabelPart(normalizedLabel, ["decision", "gate", "approval", "pass?"])) {
+  if (
+    hasAnyLabelPart(normalizedLabel, ["decision", "gate", "approval", "pass?"])
+  ) {
     return "diamond";
   }
 
@@ -430,7 +445,15 @@ function getTemplateStyleNodeColorIndex(label: string, shape: CanvasNodeShape) {
     return 6;
   }
 
-  if (hasAnyLabelPart(normalizedLabel, ["bus", "broker", "queue", "stream", "topic"])) {
+  if (
+    hasAnyLabelPart(normalizedLabel, [
+      "bus",
+      "broker",
+      "queue",
+      "stream",
+      "topic",
+    ])
+  ) {
     return 3;
   }
 
@@ -450,7 +473,9 @@ function getTemplateStyleNodeColorIndex(label: string, shape: CanvasNodeShape) {
     return 4;
   }
 
-  if (hasAnyLabelPart(normalizedLabel, ["gateway", "api", "service", "processor"])) {
+  if (
+    hasAnyLabelPart(normalizedLabel, ["gateway", "api", "service", "processor"])
+  ) {
     return 1;
   }
 
@@ -522,7 +547,10 @@ function layoutInitialGeneratedDesign(
 
     nodePositions.set(node.id, {
       x: parentPosition.x + storageIndex * templateStorageXSpacing,
-      y: parentPosition.y + getActionNodeSize(parentNode).height + templateStorageYOffset,
+      y:
+        parentPosition.y +
+        getActionNodeSize(parentNode).height +
+        templateStorageYOffset,
     });
   }
 
@@ -704,7 +732,9 @@ function addTemplateStyleEdgeDetails(
 
     return {
       ...action,
-      label: action.label?.trim() || getTemplateStyleEdgeLabel(sourceNode, targetNode),
+      label:
+        action.label?.trim() ||
+        getTemplateStyleEdgeLabel(sourceNode, targetNode),
       sourceHandle: handles.sourceHandle,
       targetHandle: handles.targetHandle,
     };
@@ -752,7 +782,9 @@ function getPlannedNodesAfterActions(
         ...plannedNode,
         label: action.label ?? plannedNode.label,
         shape: action.shape ?? plannedNode.shape,
-        size: action.shape ? NODE_DEFAULT_SIZES[action.shape] : plannedNode.size,
+        size: action.shape
+          ? NODE_DEFAULT_SIZES[action.shape]
+          : plannedNode.size,
       });
     } else if (action.type === "deleteNode") {
       plannedNodes.delete(action.id);
@@ -828,15 +860,22 @@ function getTemplateStyleEdgeLabel(
     return "JWT";
   }
 
-  if (hasAnyLabelPart(sourceLabel, ["order"]) && hasAnyLabelPart(targetLabel, ["payment"])) {
+  if (
+    hasAnyLabelPart(sourceLabel, ["order"]) &&
+    hasAnyLabelPart(targetLabel, ["payment"])
+  ) {
     return "charge";
   }
 
-  if (hasAnyLabelPart(targetLabel, ["bus", "broker", "queue", "stream", "topic"])) {
+  if (
+    hasAnyLabelPart(targetLabel, ["bus", "broker", "queue", "stream", "topic"])
+  ) {
     return "events";
   }
 
-  if (hasAnyLabelPart(sourceLabel, ["bus", "broker", "queue", "stream", "topic"])) {
+  if (
+    hasAnyLabelPart(sourceLabel, ["bus", "broker", "queue", "stream", "topic"])
+  ) {
     return "consume";
   }
 
@@ -1021,7 +1060,9 @@ function getActionCursor(
       action.type === "updateNodeData" ||
       action.type === "deleteNode"
     ) {
-      const node = snapshot.nodes.find((candidate) => candidate.id === action.id);
+      const node = snapshot.nodes.find(
+        (candidate) => candidate.id === action.id,
+      );
 
       if (node) {
         return node.position;

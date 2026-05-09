@@ -6,7 +6,10 @@ type PrismaClientInstance = InstanceType<typeof PrismaClient>;
 
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClientInstance;
+  prismaSchemaVersion?: string;
 };
+
+const prismaSchemaVersion = "20260509000000_add_project_specs";
 
 function getDatabaseUrl() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -30,8 +33,23 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+function shouldReusePrismaClient(client: PrismaClientInstance | undefined) {
+  if (!client) {
+    return false;
+  }
+
+  if (process.env.NODE_ENV !== "development") {
+    return true;
+  }
+
+  return globalForPrisma.prismaSchemaVersion === prismaSchemaVersion;
+}
+
+export const prisma = shouldReusePrismaClient(globalForPrisma.prisma)
+  ? globalForPrisma.prisma!
+  : createPrismaClient();
 
 if (process.env.NODE_ENV === "development") {
   globalForPrisma.prisma = prisma;
+  globalForPrisma.prismaSchemaVersion = prismaSchemaVersion;
 }

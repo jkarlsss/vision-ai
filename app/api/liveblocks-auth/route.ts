@@ -24,6 +24,19 @@ interface LiveblocksRoomIdResult {
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  try {
+    return await handleLiveblocksAuth(request);
+  } catch (error) {
+    console.error("Liveblocks authentication failed.", error);
+
+    return Response.json(
+      { error: "Liveblocks authentication failed." },
+      { status: 500 },
+    );
+  }
+}
+
+async function handleLiveblocksAuth(request: Request) {
   const userResult = await requireAuthenticatedLiveblocksUser();
 
   if (isApiErrorResult(userResult)) {
@@ -52,10 +65,7 @@ export async function POST(request: Request) {
   }
 
   await ensureLiveblocksRoom(accessResult.project.id);
-  await Promise.all([
-    ensureAiStatusFeed(accessResult.project.id),
-    ensureAiChatFeed(accessResult.project.id),
-  ]);
+  await ensureAiRoomFeeds(accessResult.project.id);
 
   const liveblocks = getLiveblocksClient();
   const session = liveblocks.prepareSession(userResult.identity.userId, {
@@ -72,6 +82,25 @@ export async function POST(request: Request) {
     },
     status,
   });
+}
+
+async function ensureAiRoomFeeds(roomId: string) {
+  const results = await Promise.allSettled([
+    ensureAiStatusFeed(roomId),
+    ensureAiChatFeed(roomId),
+  ]);
+  const failedResults = results.filter(
+    (result): result is PromiseRejectedResult => result.status === "rejected",
+  );
+
+  if (failedResults.length === 0) {
+    return;
+  }
+
+  console.error(
+    "Liveblocks AI feed setup failed; continuing room authentication.",
+    failedResults.map((result) => getErrorLogMessage(result.reason)),
+  );
 }
 
 async function requireAuthenticatedLiveblocksUser() {
@@ -138,4 +167,8 @@ function getPrimaryEmailAddress(
     null;
 
   return primaryEmail?.trim() || null;
+}
+
+function getErrorLogMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
