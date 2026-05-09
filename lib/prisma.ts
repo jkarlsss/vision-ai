@@ -1,6 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client/extension";
 
-import { PrismaClient } from "@/app/generated/prisma/client";
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
 
