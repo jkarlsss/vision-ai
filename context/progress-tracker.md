@@ -4,14 +4,17 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Spec generation UI polish implemented
+- Workspace navbar icon indications refined
 
 ## Current Goal
 
-- Fix the remaining generated spec list and Generate Spec button overflow shown in `context/screenshots/sidebar-spec.png`.
+- Make the project-sidebar and AI Panel navbar actions easier to identify at a glance.
 
 ## Completed
 
+- Workspace navbar project-sidebar toggle now shows a Projects label with its panel icon, and the AI Panel action now uses a Bot AI icon instead of a right-panel icon while keeping its open/close accessibility text.
+- Workspace navbar actions now show compact labels for Templates, Share, and AI Panel alongside their Lucide icons on wider viewports, matching the existing Save status treatment while preserving accessible state labels and compact mobile behavior.
+- Vision AI branding icon added through Next.js App Router metadata file conventions: the default favicon was replaced, `app/icon.svg` and `app/apple-icon.png` were added, and root metadata now uses the Vision AI name and product description.
 - Liveblocks auth now catches feed lookup 404s by status shape instead of brittle `instanceof` checks, treats AI status/chat feed setup as best-effort during room authentication, and returns JSON errors from unexpected auth failures so Liveblocks receives a reason instead of a bare 500.
 - The AI sidebar Specs tab now reads the current Liveblocks React Flow canvas, sends the latest chat history plus sanitized nodes/edges to `POST /api/ai/spec`, requests a run-scoped Trigger public token, subscribes to the `generate-spec` run with realtime updates, disables duplicate generation while active, and reloads the spec list after successful completion.
 - Specs tab polish now constrains generated spec rows and the Generate Spec button to the sidebar width, keeps long filenames truncated inside the row, and lays the preview dialog out as a stable header/body/footer grid so the footer does not overlap rendered Markdown tables.

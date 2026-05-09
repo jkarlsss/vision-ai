@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Vision AI icon">
+  <rect width="256" height="256" rx="56" fill="#080809" />
+  <path d="M38 78h46m88 0h46M78 38v46m100-46v46M38 178h46m88 0h46M78 172v46m100-46v46" fill="none" stroke="#1e1e23" stroke-width="8" stroke-linecap="round" />
+  <path d="M44 128c27-47 59-64 84-64s57 17 84 64c-27 47-59 64-84 64s-57-17-84-64Z" fill="#111114" stroke="#00c8d4" stroke-width="12" stroke-linejoin="round" />
+  <path d="M78 88 128 180l50-92" fill="none" stroke="#00c8d4" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" opacity=".92" />
+  <circle cx="128" cy="128" r="43" fill="#6457f9" />
+  <circle cx="128" cy="128" r="18" fill="#080809" />
+  <circle cx="144" cy="110" r="8" fill="#f0f0f4" opacity=".92" />
+  <circle cx="78" cy="78" r="9" fill="#00c8d4" />
+  <circle cx="178" cy="78" r="9" fill="#6457f9" />
+  <circle cx="178" cy="178" r="9" fill="#00c8d4" />
+</svg>

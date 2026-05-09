@@ -2,13 +2,12 @@
 
 import { UserButton } from "@clerk/nextjs";
 import {
+  Bot,
   CheckCircle2,
   LayoutTemplate,
   LoaderCircle,
   PanelLeftClose,
   PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen,
   Save,
   Share2,
   TriangleAlert,
@@ -21,6 +20,9 @@ import {
 import type { CanvasSaveStatus } from "@/components/editor/canvas-save-status-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const workspaceActionButtonClassName =
+  "gap-2 px-3 text-copy-secondary hover:bg-accent-dim hover:text-brand";
 
 interface EditorNavbarProps {
   isAiSidebarOpen?: boolean;
@@ -50,7 +52,6 @@ export function EditorNavbar({
   showWorkspaceActions = false,
 }: EditorNavbarProps) {
   const SidebarIcon = isSidebarOpen ? PanelLeftClose : PanelLeftOpen;
-  const AiSidebarIcon = isAiSidebarOpen ? PanelRightClose : PanelRightOpen;
 
   return (
     <header
@@ -61,13 +62,19 @@ export function EditorNavbar({
     >
       <div className="flex flex-1 items-center justify-start">
         <Button
-          aria-label={isSidebarOpen ? "Close project sidebar" : "Open project sidebar"}
+          aria-label={
+            isSidebarOpen ? "Close project sidebar" : "Open project sidebar"
+          }
+          className={workspaceActionButtonClassName}
           onClick={onToggleSidebar}
-          size="icon"
+          title={isSidebarOpen ? "Close projects" : "Open projects"}
           type="button"
           variant="ghost"
         >
-          <SidebarIcon />
+          <SidebarIcon data-icon="inline-start" />
+          <span className="hidden text-xs font-medium sm:inline">
+            Projects
+          </span>
         </Button>
       </div>
 
@@ -86,34 +93,46 @@ export function EditorNavbar({
             />
             <Button
               aria-label="Import starter template"
+              className={workspaceActionButtonClassName}
               disabled={!onOpenStarterTemplates}
               onClick={onOpenStarterTemplates}
-              size="icon"
+              title="Templates"
               type="button"
               variant="ghost"
             >
-              <LayoutTemplate />
+              <LayoutTemplate data-icon="inline-start" />
+              <span className="hidden text-xs font-medium sm:inline">
+                Templates
+              </span>
             </Button>
             <Button
               aria-label="Share project"
+              className={workspaceActionButtonClassName}
               disabled={!onShareProject}
               onClick={onShareProject}
-              size="icon"
+              title="Share project"
               type="button"
               variant="ghost"
             >
-              <Share2 />
+              <Share2 data-icon="inline-start" />
+              <span className="hidden text-xs font-medium sm:inline">
+                Share
+              </span>
             </Button>
             <Button
               aria-label={
                 isAiSidebarOpen ? "Close AI sidebar" : "Open AI sidebar"
               }
+              className={workspaceActionButtonClassName}
               onClick={onToggleAiSidebar}
-              size="icon"
+              title={isAiSidebarOpen ? "Close AI panel" : "Open AI panel"}
               type="button"
               variant="ghost"
             >
-              <AiSidebarIcon />
+              <Bot data-icon="inline-start" />
+              <span className="hidden text-xs font-medium sm:inline">
+                AI Panel
+              </span>
             </Button>
           </>
         )}
@@ -140,7 +159,7 @@ function SaveStatusButton({
   return (
     <Button
       aria-label={`Canvas save status: ${label}`}
-      className="gap-2 px-3 text-copy-secondary hover:bg-accent-dim hover:text-brand"
+      className={workspaceActionButtonClassName}
       disabled={!onSaveCanvas || saveStatus === "saving"}
       onClick={onSaveCanvas}
       title={`Canvas ${label.toLowerCase()}`}
